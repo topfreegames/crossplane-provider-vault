@@ -24,9 +24,11 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
 	"github.com/crossplane/crossplane-runtime/pkg/connection"
 	"github.com/crossplane/crossplane-runtime/pkg/controller"
 	"github.com/crossplane/crossplane-runtime/pkg/event"
+	"github.com/crossplane/crossplane-runtime/pkg/logging"
 	"github.com/crossplane/crossplane-runtime/pkg/ratelimiter"
 	"github.com/crossplane/crossplane-runtime/pkg/reconciler/managed"
 	"github.com/crossplane/crossplane-runtime/pkg/resource"
@@ -72,7 +74,9 @@ func Setup(mgr ctrl.Manager, o controller.Options) error {
 		managed.WithExternalConnecter(&connector{
 			kube:         mgr.GetClient(),
 			usage:        resource.NewProviderConfigUsageTracker(mgr.GetClient(), &apisv1alpha1.ProviderConfigUsage{}),
-			newServiceFn: newNoOpService}),
+			newServiceFn: newNoOpService,
+			logger:       o.Logger,
+		}),
 		managed.WithLogger(o.Logger.WithValues("controller", name)),
 		managed.WithRecorder(event.NewAPIRecorder(mgr.GetEventRecorderFor(name))),
 		managed.WithConnectionPublishers(cps...))
@@ -90,6 +94,7 @@ type connector struct {
 	kube         client.Client
 	usage        resource.Tracker
 	newServiceFn func(creds []byte) (interface{}, error)
+	logger       logging.Logger
 }
 
 // Connect typically produces an ExternalClient by:
@@ -136,6 +141,7 @@ func (c *connector) Connect(ctx context.Context, mg resource.Managed) (managed.E
 	return &external{
 		service: svc,
 		client:  vaultClient,
+		logger:  c.logger,
 	}, nil
 }
 
@@ -147,6 +153,8 @@ type external struct {
 	service interface{}
 
 	client *vault.Client
+
+	logger logging.Logger
 }
 
 func (c *external) Observe(ctx context.Context, mg resource.Managed) (managed.ExternalObservation, error) {
@@ -158,6 +166,12 @@ func (c *external) Observe(ctx context.Context, mg resource.Managed) (managed.Ex
 	existingPolicyRules, err := c.client.Sys().GetPolicy(policy.Name)
 	exists := err == nil
 	upToDate := policy.Spec.ForProvider.Rules == existingPolicyRules
+
+	c.logger.Info("Observing policy", "name", policy.Name, "observation", existingPolicyRules, "obersvationErr", err, "exists", exists, "upToDate", upToDate)
+
+	if exists && upToDate {
+		policy.SetConditions(xpv1.Available())
+	}
 
 	return managed.ExternalObservation{
 		// Return false when the external resource does not exist. This lets
@@ -182,7 +196,10 @@ func (c *external) Create(ctx context.Context, mg resource.Managed) (managed.Ext
 		return managed.ExternalCreation{}, errors.New(errNotPolicy)
 	}
 
-	err := c.client.Sys().PutPolicyWithContext(ctx, policy.Name, policy.Spec.ForProvider.Rules)
+	// observation, oberr := c.client.Sys().GetPolicy(policy.Name)
+	// c.logger.Info("Trying to create policy", "name", policy.Name, "observation", observation, "obersvationErr", oberr, "addr", c.client.Address(), "token", c.client.Token())
+
+	err := c.client.Sys().PutPolicy(policy.Name, policy.Spec.ForProvider.Rules)
 	if err != nil {
 		return managed.ExternalCreation{}, errors.Wrap(err, errCreation)
 	}
@@ -200,7 +217,7 @@ func (c *external) Update(ctx context.Context, mg resource.Managed) (managed.Ext
 		return managed.ExternalUpdate{}, errors.New(errNotPolicy)
 	}
 
-	err := c.client.Sys().PutPolicyWithContext(ctx, policy.Name, policy.Spec.ForProvider.Rules)
+	err := c.client.Sys().PutPolicy(policy.Name, policy.Spec.ForProvider.Rules)
 	if err != nil {
 		return managed.ExternalUpdate{}, errors.Wrap(err, errUpdate)
 	}

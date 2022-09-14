@@ -5,13 +5,15 @@ metadata:
   name: example-provider-secret
 type: Opaque
 data:
-  # credentials: BASE64ENCODED_PROVIDER_CREDS
+  credentials: aHZzLjcyM295aUE5TEZZSGVoR2VySnNvWGFLbg==
 ---
 apiVersion: vault.crossplane.io/v1alpha1
 kind: ProviderConfig
 metadata:
   name: example
 spec:
+  timeout: 100
+  address: http://vault.vault:8200
   credentials:
     source: Secret
     secretRef:

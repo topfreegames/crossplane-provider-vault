@@ -18,12 +18,17 @@ limitations under the License.
 package apis
 
 import (
+	sysv1alpha1 "github.com/crossplane/provider-vault/apis/sys/v1alpha1"
+	vaultv1alpha1 "github.com/crossplane/provider-vault/apis/v1alpha1"
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
 func init() {
 	// Register the types with the Scheme so the components can map objects to GroupVersionKinds and back
-	AddToSchemes = append(AddToSchemes)
+	AddToSchemes = append(AddToSchemes,
+		vaultv1alpha1.SchemeBuilder.AddToScheme,
+		sysv1alpha1.SchemeBuilder.AddToScheme,
+	)
 }
 
 // AddToSchemes may be used to add all resources defined in the project to a Scheme

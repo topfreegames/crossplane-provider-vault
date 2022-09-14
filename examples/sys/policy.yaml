@@ -1,0 +1,12 @@
+apiVersion: sys.vault.crossplane.io/v1alpha1
+kind: Policy
+metadata:
+  name: testNUMBER
+spec:
+  forProvider:
+    rules: |
+      path "auth/*" {
+        capabilities = ["list"]
+      }
+  providerConfigRef:
+    name: example

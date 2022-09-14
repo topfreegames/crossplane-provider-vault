@@ -5,7 +5,6 @@ go 1.19
 require (
 	github.com/crossplane/crossplane-runtime v0.17.0
 	github.com/crossplane/crossplane-tools v0.0.0-20220310165030-1f43fc12793e
-	github.com/crossplane/provider-template v0.0.0-20220822164548-04b9983974de
 	github.com/google/go-cmp v0.5.6
 	github.com/hashicorp/vault/api v1.7.2
 	github.com/pkg/errors v0.9.1
