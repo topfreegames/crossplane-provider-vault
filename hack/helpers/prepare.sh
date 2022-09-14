@@ -18,6 +18,7 @@
 # See: https://github.com/crossplane/terrajet/blob/main/docs/generating-a-provider.md
 set -euo pipefail
 
+PROVIDER="Vault"
 ProviderNameUpper=${PROVIDER}
 ProviderNameLower=$(echo "${PROVIDER}" | tr "[:upper:]" "[:lower:]")
 
@@ -31,12 +32,12 @@ git grep -l 'template' -- ${REPLACE_FILES} | xargs sed -i.bak "s/template/${Prov
 git grep -l 'Template' -- ${REPLACE_FILES} | xargs sed -i.bak "s/Template/${ProviderNameUpper}/g"
 # We need to be careful while replacing "template" keyword in go.mod as it could tamper
 # some imported packages under require section.
-sed -i.bak "s/provider-template/provider-${ProviderNameLower}/g" go.mod
+sed -i.bak "s/provider-vault/provider-${ProviderNameLower}/g" go.mod
 
 # Clean up the .bak files created by sed
 git clean -fd
 
 git mv "apis/template.go" "apis/${ProviderNameLower}.go"
 git mv "internal/controller/template.go" "internal/controller/${ProviderNameLower}.go"
-git mv "cluster/images/provider-template" "cluster/images/provider-${ProviderNameLower}"
-git mv "cluster/images/provider-template-controller" "cluster/images/provider-${ProviderNameLower}-controller"
+git mv "cluster/images/provider-vault" "cluster/images/provider-${ProviderNameLower}"
+git mv "cluster/images/provider-vault-controller" "cluster/images/provider-${ProviderNameLower}-controller"

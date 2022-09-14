@@ -18,6 +18,7 @@ package v1alpha1
 
 import (
 	"reflect"
+	"time"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -29,6 +30,12 @@ import (
 type ProviderConfigSpec struct {
 	// Credentials required to authenticate to this provider.
 	Credentials ProviderCredentials `json:"credentials"`
+
+	// Vault Address
+	Address string `json:"address"`
+
+	// Vault client timeout
+	Timeout time.Duration `json:"timeout"`
 }
 
 // ProviderCredentials required to authenticate.
@@ -47,7 +54,7 @@ type ProviderConfigStatus struct {
 
 // +kubebuilder:object:root=true
 
-// A ProviderConfig configures a Template provider.
+// A ProviderConfig configures a Vault provider.
 // +kubebuilder:subresource:status
 // +kubebuilder:printcolumn:name="AGE",type="date",JSONPath=".metadata.creationTimestamp"
 // +kubebuilder:printcolumn:name="SECRET-NAME",type="string",JSONPath=".spec.credentials.secretRef.name",priority=1

@@ -14,11 +14,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package mytype
+package policy
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/types"
@@ -31,19 +30,25 @@ import (
 	"github.com/crossplane/crossplane-runtime/pkg/ratelimiter"
 	"github.com/crossplane/crossplane-runtime/pkg/reconciler/managed"
 	"github.com/crossplane/crossplane-runtime/pkg/resource"
+	vault "github.com/hashicorp/vault/api"
 
-	"github.com/crossplane/provider-template/apis/sample/v1alpha1"
-	apisv1alpha1 "github.com/crossplane/provider-template/apis/v1alpha1"
-	"github.com/crossplane/provider-template/internal/controller/features"
+	"github.com/crossplane/provider-vault/apis/sys/v1alpha1"
+	apisv1alpha1 "github.com/crossplane/provider-vault/apis/v1alpha1"
+	"github.com/crossplane/provider-vault/internal/controller/features"
 )
 
 const (
-	errNotMyType    = "managed resource is not a MyType custom resource"
+	errNotPolicy    = "managed resource is not a Policy custom resource"
 	errTrackPCUsage = "cannot track ProviderConfig usage"
 	errGetPC        = "cannot get ProviderConfig"
 	errGetCreds     = "cannot get credentials"
 
-	errNewClient = "cannot create new Service"
+	errNewClient         = "cannot create new Service"
+	errNewExternalClient = "cannot create vault client from config"
+
+	errCreation = "cannot create policy"
+	errUpdate   = "cannot update policy"
+	errDelete   = "cannot delete policy"
 )
 
 // A NoOpService does nothing.
@@ -53,9 +58,9 @@ var (
 	newNoOpService = func(_ []byte) (interface{}, error) { return &NoOpService{}, nil }
 )
 
-// Setup adds a controller that reconciles MyType managed resources.
+// Setup adds a controller that reconciles Policy managed resources.
 func Setup(mgr ctrl.Manager, o controller.Options) error {
-	name := managed.ControllerName(v1alpha1.MyTypeGroupKind)
+	name := managed.ControllerName(v1alpha1.PolicyGroupKind)
 
 	cps := []managed.ConnectionPublisher{managed.NewAPISecretPublisher(mgr.GetClient(), mgr.GetScheme())}
 	if o.Features.Enabled(features.EnableAlphaExternalSecretStores) {
@@ -63,7 +68,7 @@ func Setup(mgr ctrl.Manager, o controller.Options) error {
 	}
 
 	r := managed.NewReconciler(mgr,
-		resource.ManagedKind(v1alpha1.MyTypeGroupVersionKind),
+		resource.ManagedKind(v1alpha1.PolicyGroupVersionKind),
 		managed.WithExternalConnecter(&connector{
 			kube:         mgr.GetClient(),
 			usage:        resource.NewProviderConfigUsageTracker(mgr.GetClient(), &apisv1alpha1.ProviderConfigUsage{}),
@@ -75,7 +80,7 @@ func Setup(mgr ctrl.Manager, o controller.Options) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		Named(name).
 		WithOptions(o.ForControllerRuntime()).
-		For(&v1alpha1.MyType{}).
+		For(&v1alpha1.Policy{}).
 		Complete(ratelimiter.NewReconciler(name, r, o.GlobalRateLimiter))
 }
 
@@ -93,9 +98,9 @@ type connector struct {
 // 3. Getting the credentials specified by the ProviderConfig.
 // 4. Using the credentials to form a client.
 func (c *connector) Connect(ctx context.Context, mg resource.Managed) (managed.ExternalClient, error) {
-	cr, ok := mg.(*v1alpha1.MyType)
+	cr, ok := mg.(*v1alpha1.Policy)
 	if !ok {
-		return nil, errors.New(errNotMyType)
+		return nil, errors.New(errNotPolicy)
 	}
 
 	if err := c.usage.Track(ctx, mg); err != nil {
@@ -108,17 +113,30 @@ func (c *connector) Connect(ctx context.Context, mg resource.Managed) (managed.E
 	}
 
 	cd := pc.Spec.Credentials
-	data, err := resource.CommonCredentialExtractor(ctx, cd.Source, c.kube, cd.CommonCredentialSelectors)
+	token, err := resource.CommonCredentialExtractor(ctx, cd.Source, c.kube, cd.CommonCredentialSelectors)
 	if err != nil {
 		return nil, errors.Wrap(err, errGetCreds)
 	}
 
-	svc, err := c.newServiceFn(data)
+	svc, err := c.newServiceFn(token)
 	if err != nil {
 		return nil, errors.Wrap(err, errNewClient)
 	}
 
-	return &external{service: svc}, nil
+	vaultClient, err := vault.NewClient(&vault.Config{
+		Address: pc.Spec.Address,
+		Timeout: pc.Spec.Timeout,
+	})
+	if err != nil {
+		return nil, errors.Wrap(err, errNewExternalClient)
+	}
+
+	vaultClient.SetToken(string(token))
+
+	return &external{
+		service: svc,
+		client:  vaultClient,
+	}, nil
 }
 
 // An ExternalClient observes, then either creates, updates, or deletes an
@@ -127,27 +145,30 @@ type external struct {
 	// A 'client' used to connect to the external resource API. In practice this
 	// would be something like an AWS SDK client.
 	service interface{}
+
+	client *vault.Client
 }
 
 func (c *external) Observe(ctx context.Context, mg resource.Managed) (managed.ExternalObservation, error) {
-	cr, ok := mg.(*v1alpha1.MyType)
+	policy, ok := mg.(*v1alpha1.Policy)
 	if !ok {
-		return managed.ExternalObservation{}, errors.New(errNotMyType)
+		return managed.ExternalObservation{}, errors.New(errNotPolicy)
 	}
 
-	// These fmt statements should be removed in the real implementation.
-	fmt.Printf("Observing: %+v", cr)
+	existingPolicyRules, err := c.client.Sys().GetPolicy(policy.Name)
+	exists := err == nil
+	upToDate := policy.Spec.ForProvider.Rules == existingPolicyRules
 
 	return managed.ExternalObservation{
 		// Return false when the external resource does not exist. This lets
 		// the managed resource reconciler know that it needs to call Create to
 		// (re)create the resource, or that it has successfully been deleted.
-		ResourceExists: true,
+		ResourceExists: exists,
 
 		// Return false when the external resource exists, but it not up to date
 		// with the desired managed resource state. This lets the managed
 		// resource reconciler know that it needs to call Update.
-		ResourceUpToDate: true,
+		ResourceUpToDate: upToDate,
 
 		// Return any details that may be required to connect to the external
 		// resource. These will be stored as the connection secret.
@@ -156,12 +177,15 @@ func (c *external) Observe(ctx context.Context, mg resource.Managed) (managed.Ex
 }
 
 func (c *external) Create(ctx context.Context, mg resource.Managed) (managed.ExternalCreation, error) {
-	cr, ok := mg.(*v1alpha1.MyType)
+	policy, ok := mg.(*v1alpha1.Policy)
 	if !ok {
-		return managed.ExternalCreation{}, errors.New(errNotMyType)
+		return managed.ExternalCreation{}, errors.New(errNotPolicy)
 	}
 
-	fmt.Printf("Creating: %+v", cr)
+	err := c.client.Sys().PutPolicyWithContext(ctx, policy.Name, policy.Spec.ForProvider.Rules)
+	if err != nil {
+		return managed.ExternalCreation{}, errors.Wrap(err, errCreation)
+	}
 
 	return managed.ExternalCreation{
 		// Optionally return any details that may be required to connect to the
@@ -171,12 +195,15 @@ func (c *external) Create(ctx context.Context, mg resource.Managed) (managed.Ext
 }
 
 func (c *external) Update(ctx context.Context, mg resource.Managed) (managed.ExternalUpdate, error) {
-	cr, ok := mg.(*v1alpha1.MyType)
+	policy, ok := mg.(*v1alpha1.Policy)
 	if !ok {
-		return managed.ExternalUpdate{}, errors.New(errNotMyType)
+		return managed.ExternalUpdate{}, errors.New(errNotPolicy)
 	}
 
-	fmt.Printf("Updating: %+v", cr)
+	err := c.client.Sys().PutPolicyWithContext(ctx, policy.Name, policy.Spec.ForProvider.Rules)
+	if err != nil {
+		return managed.ExternalUpdate{}, errors.Wrap(err, errUpdate)
+	}
 
 	return managed.ExternalUpdate{
 		// Optionally return any details that may be required to connect to the
@@ -186,12 +213,15 @@ func (c *external) Update(ctx context.Context, mg resource.Managed) (managed.Ext
 }
 
 func (c *external) Delete(ctx context.Context, mg resource.Managed) error {
-	cr, ok := mg.(*v1alpha1.MyType)
+	policy, ok := mg.(*v1alpha1.Policy)
 	if !ok {
-		return errors.New(errNotMyType)
+		return errors.New(errNotPolicy)
 	}
 
-	fmt.Printf("Deleting: %+v", cr)
+	err := c.client.Sys().DeletePolicy(policy.Name)
+	if err != nil {
+		return errors.Wrap(err, errDelete)
+	}
 
 	return nil
 }

@@ -1,7 +1,7 @@
-# provider-template
+# provider-vault
 
-`provider-template` is a minimal [Crossplane](https://crossplane.io/) Provider
-that is meant to be used as a template for implementing new Providers. It comes
+`provider-vault` is a minimal [Crossplane](https://crossplane.io/) Provider
+that is meant to be used as a vault for implementing new Providers. It comes
 with the following features that are meant to be refactored:
 
 - A `ProviderConfig` type that only points to a credentials `Secret`.
@@ -11,8 +11,8 @@ with the following features that are meant to be refactored:
 
 ## Developing
 
-1. Use this repository as a template to create a new one.
-1. Find-and-replace `provider-template` with your provider's name.
+1. Use this repository as a vault to create a new one.
+1. Find-and-replace `provider-vault` with your provider's name.
 1. Run `make` to initialize the "build" Make submodule we use for CI/CD.
 1. Run `make reviewable` to run code generation, linters, and tests.
 1. Replace `MyType` with your own managed resource implementation(s).
