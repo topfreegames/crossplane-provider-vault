@@ -20,7 +20,6 @@ import (
 	"context"
 
 	"github.com/pkg/errors"
-	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -36,6 +35,7 @@ import (
 
 	"github.com/crossplane/provider-vault/apis/sys/v1alpha1"
 	apisv1alpha1 "github.com/crossplane/provider-vault/apis/v1alpha1"
+	"github.com/crossplane/provider-vault/internal/clients"
 	"github.com/crossplane/provider-vault/internal/controller/features"
 )
 
@@ -75,8 +75,7 @@ func Setup(mgr ctrl.Manager, o controller.Options) error {
 			kube:         mgr.GetClient(),
 			usage:        resource.NewProviderConfigUsageTracker(mgr.GetClient(), &apisv1alpha1.ProviderConfigUsage{}),
 			newServiceFn: newNoOpService,
-			logger:       o.Logger,
-		}),
+			logger:       o.Logger}),
 		managed.WithLogger(o.Logger.WithValues("controller", name)),
 		managed.WithRecorder(event.NewAPIRecorder(mgr.GetEventRecorderFor(name))),
 		managed.WithConnectionPublishers(cps...))
@@ -108,38 +107,12 @@ func (c *connector) Connect(ctx context.Context, mg resource.Managed) (managed.E
 		return nil, errors.New(errNotPolicy)
 	}
 
-	if err := c.usage.Track(ctx, mg); err != nil {
-		return nil, errors.Wrap(err, errTrackPCUsage)
-	}
-
-	pc := &apisv1alpha1.ProviderConfig{}
-	if err := c.kube.Get(ctx, types.NamespacedName{Name: cr.GetProviderConfigReference().Name}, pc); err != nil {
-		return nil, errors.Wrap(err, errGetPC)
-	}
-
-	cd := pc.Spec.Credentials
-	token, err := resource.CommonCredentialExtractor(ctx, cd.Source, c.kube, cd.CommonCredentialSelectors)
-	if err != nil {
-		return nil, errors.Wrap(err, errGetCreds)
-	}
-
-	svc, err := c.newServiceFn(token)
-	if err != nil {
-		return nil, errors.Wrap(err, errNewClient)
-	}
-
-	vaultClient, err := vault.NewClient(&vault.Config{
-		Address: pc.Spec.Address,
-		Timeout: pc.Spec.Timeout,
-	})
+	vaultClient, err := clients.NewVaultClient(ctx, c.kube, cr)
 	if err != nil {
 		return nil, errors.Wrap(err, errNewExternalClient)
 	}
 
-	vaultClient.SetToken(string(token))
-
 	return &external{
-		service: svc,
 		client:  vaultClient,
 		logger:  c.logger,
 	}, nil
@@ -150,8 +123,6 @@ func (c *connector) Connect(ctx context.Context, mg resource.Managed) (managed.E
 type external struct {
 	// A 'client' used to connect to the external resource API. In practice this
 	// would be something like an AWS SDK client.
-	service interface{}
-
 	client *vault.Client
 
 	logger logging.Logger
@@ -164,10 +135,8 @@ func (c *external) Observe(ctx context.Context, mg resource.Managed) (managed.Ex
 	}
 
 	existingPolicyRules, err := c.client.Sys().GetPolicy(policy.Name)
-	exists := err == nil
+	exists := err == nil && existingPolicyRules != ""
 	upToDate := policy.Spec.ForProvider.Rules == existingPolicyRules
-
-	c.logger.Info("Observing policy", "name", policy.Name, "observation", existingPolicyRules, "obersvationErr", err, "exists", exists, "upToDate", upToDate)
 
 	if exists && upToDate {
 		policy.SetConditions(xpv1.Available())
