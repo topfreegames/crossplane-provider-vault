@@ -18,8 +18,8 @@ limitations under the License.
 package apis
 
 import (
-	sysv1alpha1 "github.com/crossplane/provider-vault/apis/sys/v1alpha1"
-	vaultv1alpha1 "github.com/crossplane/provider-vault/apis/v1alpha1"
+	sysv1alpha1 "github.com/topfreegames/crossplane-provider-vault/apis/sys/v1alpha1"
+	vaultv1alpha1 "github.com/topfreegames/crossplane-provider-vault/apis/v1alpha1"
 	"k8s.io/apimachinery/pkg/runtime"
 )
 

@@ -20,8 +20,8 @@ import (
 	"github.com/crossplane/crossplane-runtime/pkg/controller"
 	ctrl "sigs.k8s.io/controller-runtime"
 
-	"github.com/crossplane/provider-vault/internal/controller/config"
-	"github.com/crossplane/provider-vault/internal/controller/policy"
+	"github.com/topfreegames/crossplane-provider-vault/internal/controller/config"
+	"github.com/topfreegames/crossplane-provider-vault/internal/controller/policy"
 )
 
 // Setup creates all Vault controllers with the supplied logger and adds them to

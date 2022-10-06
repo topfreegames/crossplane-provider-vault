@@ -18,6 +18,7 @@ package policy
 
 import (
 	"context"
+	"time"
 
 	"github.com/pkg/errors"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -31,21 +32,15 @@ import (
 	"github.com/crossplane/crossplane-runtime/pkg/ratelimiter"
 	"github.com/crossplane/crossplane-runtime/pkg/reconciler/managed"
 	"github.com/crossplane/crossplane-runtime/pkg/resource"
-	vault "github.com/hashicorp/vault/api"
 
-	"github.com/crossplane/provider-vault/apis/sys/v1alpha1"
-	apisv1alpha1 "github.com/crossplane/provider-vault/apis/v1alpha1"
-	"github.com/crossplane/provider-vault/internal/clients"
-	"github.com/crossplane/provider-vault/internal/controller/features"
+	"github.com/topfreegames/crossplane-provider-vault/apis/sys/v1alpha1"
+	apisv1alpha1 "github.com/topfreegames/crossplane-provider-vault/apis/v1alpha1"
+	"github.com/topfreegames/crossplane-provider-vault/internal/clients"
+	"github.com/topfreegames/crossplane-provider-vault/internal/controller/features"
 )
 
 const (
-	errNotPolicy    = "managed resource is not a Policy custom resource"
-	errTrackPCUsage = "cannot track ProviderConfig usage"
-	errGetPC        = "cannot get ProviderConfig"
-	errGetCreds     = "cannot get credentials"
-
-	errNewClient         = "cannot create new Service"
+	errNotPolicy         = "managed resource is not a Policy custom resource"
 	errNewExternalClient = "cannot create vault client from config"
 
 	errCreation = "cannot create policy"
@@ -113,8 +108,8 @@ func (c *connector) Connect(ctx context.Context, mg resource.Managed) (managed.E
 	}
 
 	return &external{
-		client:  vaultClient,
-		logger:  c.logger,
+		client: vaultClient,
+		logger: c.logger,
 	}, nil
 }
 
@@ -123,7 +118,7 @@ func (c *connector) Connect(ctx context.Context, mg resource.Managed) (managed.E
 type external struct {
 	// A 'client' used to connect to the external resource API. In practice this
 	// would be something like an AWS SDK client.
-	client *vault.Client
+	client clients.VaultClient
 
 	logger logging.Logger
 }
@@ -137,6 +132,8 @@ func (c *external) Observe(ctx context.Context, mg resource.Managed) (managed.Ex
 	existingPolicyRules, err := c.client.Sys().GetPolicy(policy.Name)
 	exists := err == nil && existingPolicyRules != ""
 	upToDate := policy.Spec.ForProvider.Rules == existingPolicyRules
+
+	time.Sleep(1 * time.Second)
 
 	if exists && upToDate {
 		policy.SetConditions(xpv1.Available())

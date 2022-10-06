@@ -1,7 +1,7 @@
 # ====================================================================================
 # Setup Project
-PROJECT_NAME := provider-vault
-PROJECT_REPO := github.com/crossplane/$(PROJECT_NAME)
+PROJECT_NAME := crossplane-provider-vault
+PROJECT_REPO := github.com/topfreegames/$(PROJECT_NAME)
 
 PLATFORMS ?= linux_amd64 linux_arm64
 -include build/makelib/common.mk

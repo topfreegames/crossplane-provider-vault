@@ -36,10 +36,10 @@ import (
 	"github.com/crossplane/crossplane-runtime/pkg/ratelimiter"
 	"github.com/crossplane/crossplane-runtime/pkg/resource"
 
-	"github.com/crossplane/provider-vault/apis"
-	"github.com/crossplane/provider-vault/apis/v1alpha1"
-	vault "github.com/crossplane/provider-vault/internal/controller"
-	"github.com/crossplane/provider-vault/internal/controller/features"
+	"github.com/topfreegames/crossplane-provider-vault/apis"
+	"github.com/topfreegames/crossplane-provider-vault/apis/v1alpha1"
+	vault "github.com/topfreegames/crossplane-provider-vault/internal/controller"
+	"github.com/topfreegames/crossplane-provider-vault/internal/controller/features"
 )
 
 func main() {
