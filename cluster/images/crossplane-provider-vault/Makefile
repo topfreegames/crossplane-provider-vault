@@ -6,7 +6,7 @@ include ../../../build/makelib/common.mk
 
 # ====================================================================================
 #  Options
-DOCKER_REGISTRY ?= topfreegames
+DOCKER_REGISTRY ?= tfgco
 IMAGE = $(BUILD_REGISTRY)/crossplane-provider-vault-$(ARCH)
 OSBASEIMAGE = scratch
 include ../../../build/makelib/image.mk
