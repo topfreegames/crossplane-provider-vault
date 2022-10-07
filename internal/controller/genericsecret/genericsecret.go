@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package {{ .Env.KIND | strings.ToLower }}
+package genericsecret
 
 import (
 	"context"
@@ -32,14 +32,14 @@ import (
 	"github.com/crossplane/crossplane-runtime/pkg/resource"
 	vault "github.com/hashicorp/vault/api"
 
-	"github.com/topfreegames/crossplane-provider-{{ .Env.PROVIDER | strings.ToLower }}/apis/{{ .Env.GROUP | strings.ToLower }}/{{ .Env.APIVERSION | strings.ToLower }}"
-	apisv1alpha1 "github.com/topfreegames/crossplane-provider-{{ .Env.PROVIDER | strings.ToLower }}/apis/v1alpha1"
-	"github.com/topfreegames/crossplane-provider-{{ .Env.PROVIDER | strings.ToLower }}/internal/controller/features"
-	"github.com/topfreegames/crossplane-provider-{{ .Env.PROVIDER | strings.ToLower }}/internal/clients"
+	"github.com/topfreegames/crossplane-provider-vault/apis/secret/v1alpha1"
+	apisv1alpha1 "github.com/topfreegames/crossplane-provider-vault/apis/v1alpha1"
+	"github.com/topfreegames/crossplane-provider-vault/internal/controller/features"
+	"github.com/topfreegames/crossplane-provider-vault/internal/clients"
 )
 
 const (
-	errNot{{ .Env.KIND }}    = "managed resource is not a {{ .Env.KIND }} custom resource"
+	errNotGenericSecret    = "managed resource is not a GenericSecret custom resource"
 	errTrackPCUsage = "cannot track ProviderConfig usage"
 	errGetPC        = "cannot get ProviderConfig"
 	errGetCreds     = "cannot get credentials"
@@ -55,9 +55,9 @@ var (
 	newNoOpService = func(_ []byte) (interface{}, error) { return &NoOpService{}, nil }
 )
 
-// Setup adds a controller that reconciles {{ .Env.KIND }} managed resources.
+// Setup adds a controller that reconciles GenericSecret managed resources.
 func Setup(mgr ctrl.Manager, o controller.Options) error {
-	name := managed.ControllerName(v1alpha1.{{ .Env.KIND }}GroupKind)
+	name := managed.ControllerName(v1alpha1.GenericSecretGroupKind)
 
 	cps := []managed.ConnectionPublisher{managed.NewAPISecretPublisher(mgr.GetClient(), mgr.GetScheme())}
 	if o.Features.Enabled(features.EnableAlphaExternalSecretStores) {
@@ -65,7 +65,7 @@ func Setup(mgr ctrl.Manager, o controller.Options) error {
 	}
 
 	r := managed.NewReconciler(mgr,
-		resource.ManagedKind(v1alpha1.{{ .Env.KIND }}GroupVersionKind),
+		resource.ManagedKind(v1alpha1.GenericSecretGroupVersionKind),
 		managed.WithExternalConnecter(&connector{
 			kube:         mgr.GetClient(),
 			usage:        resource.NewProviderConfigUsageTracker(mgr.GetClient(), &apisv1alpha1.ProviderConfigUsage{}),
@@ -78,7 +78,7 @@ func Setup(mgr ctrl.Manager, o controller.Options) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		Named(name).
 		WithOptions(o.ForControllerRuntime()).
-		For(&v1alpha1.{{ .Env.KIND }}{}).
+		For(&v1alpha1.GenericSecret{}).
 		Complete(ratelimiter.NewReconciler(name, r, o.GlobalRateLimiter))
 }
 
@@ -97,9 +97,9 @@ type connector struct {
 // 3. Getting the credentials specified by the ProviderConfig.
 // 4. Using the credentials to form a client.
 func (c *connector) Connect(ctx context.Context, mg resource.Managed) (managed.ExternalClient, error) {
-	cr, ok := mg.(*v1alpha1.{{ .Env.KIND }})
+	cr, ok := mg.(*v1alpha1.GenericSecret)
 	if !ok {
-		return nil, errors.New(errNot{{ .Env.KIND }})
+		return nil, errors.New(errNotGenericSecret)
 	}
 
 	vaultClient, err := clients.NewVaultClient(ctx, c.kube, cr)
@@ -124,9 +124,9 @@ type external struct {
 }
 
 func (c *external) Observe(ctx context.Context, mg resource.Managed) (managed.ExternalObservation, error) {
-	cr, ok := mg.(*v1alpha1.{{ .Env.KIND }})
+	cr, ok := mg.(*v1alpha1.GenericSecret)
 	if !ok {
-		return managed.ExternalObservation{}, errors.New(errNot{{ .Env.KIND }})
+		return managed.ExternalObservation{}, errors.New(errNotGenericSecret)
 	}
 
 	// These logger statements should be removed in the real implementation.
@@ -150,9 +150,9 @@ func (c *external) Observe(ctx context.Context, mg resource.Managed) (managed.Ex
 }
 
 func (c *external) Create(ctx context.Context, mg resource.Managed) (managed.ExternalCreation, error) {
-	cr, ok := mg.(*v1alpha1.{{ .Env.KIND }})
+	cr, ok := mg.(*v1alpha1.GenericSecret)
 	if !ok {
-		return managed.ExternalCreation{}, errors.New(errNot{{ .Env.KIND }})
+		return managed.ExternalCreation{}, errors.New(errNotGenericSecret)
 	}
 
   c.logger.Info("Creating:", "cr", cr)
@@ -165,9 +165,9 @@ func (c *external) Create(ctx context.Context, mg resource.Managed) (managed.Ext
 }
 
 func (c *external) Update(ctx context.Context, mg resource.Managed) (managed.ExternalUpdate, error) {
-	cr, ok := mg.(*v1alpha1.{{ .Env.KIND }})
+	cr, ok := mg.(*v1alpha1.GenericSecret)
 	if !ok {
-		return managed.ExternalUpdate{}, errors.New(errNot{{ .Env.KIND }})
+		return managed.ExternalUpdate{}, errors.New(errNotGenericSecret)
 	}
 
   c.logger.Info("Updating:", "cr", cr)
@@ -180,9 +180,9 @@ func (c *external) Update(ctx context.Context, mg resource.Managed) (managed.Ext
 }
 
 func (c *external) Delete(ctx context.Context, mg resource.Managed) error {
-	cr, ok := mg.(*v1alpha1.{{ .Env.KIND }})
+	cr, ok := mg.(*v1alpha1.GenericSecret)
 	if !ok {
-		return errors.New(errNot{{ .Env.KIND }})
+		return errors.New(errNotGenericSecret)
 	}
 
   c.logger.Info("Deleting:", "cr", cr)
