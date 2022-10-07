@@ -73,7 +73,7 @@ func getTestError() error {
 
 func TestObserve(t *testing.T) {
 	type fields struct {
-		clientBuilder func (t *testing.T) clients.VaultClient
+		clientBuilder func(t *testing.T) clients.VaultClient
 	}
 
 	type args struct {

@@ -18,10 +18,12 @@ const (
 	errNewExternalClient = "cannot create vault client from config"
 )
 
+// VaultClientWrapper implements the VaultClient interface and provides the subclient abstractions
 type VaultClientWrapper struct {
 	*vault.Client
 }
 
+// VaultClient wraps the vault client
 type VaultClient interface {
 	Sys() VaultSysClient
 }
