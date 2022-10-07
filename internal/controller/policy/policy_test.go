@@ -177,7 +177,6 @@ func TestObserve(t *testing.T) {
 
 	for name, tc := range cases {
 		t.Run(name, func(t *testing.T) {
-			t.Parallel()
 			e := &external{
 				client: tc.fields.clientBuilder(t),
 			}
@@ -219,7 +218,7 @@ func TestCreate(t *testing.T) {
 				clientBuilder: func(t *testing.T) clients.VaultClient {
 					ctrl := gomock.NewController(t)
 					sysMock := fake.NewMockVaultSysClient(ctrl)
-					sysMock.EXPECT().PutPolicy(getTestPolicy().ObjectMeta.Name, getTestPolicy().Spec.ForProvider.Rules).Return(getTestError())
+					sysMock.EXPECT().PutPolicy(getTestPolicy().ObjectMeta.Name, getTestPolicy().Spec.ForProvider.Rules).Return(nil)
 
 					client := fake.NewMockVaultClient(ctrl)
 					client.EXPECT().Sys().Return(sysMock)
@@ -234,7 +233,7 @@ func TestCreate(t *testing.T) {
 				o: managed.ExternalCreation{
 					ConnectionDetails: map[string][]byte{},
 				},
-				err: getTestError(),
+				err: nil,
 			},
 		},
 		"error creation": {
@@ -263,7 +262,6 @@ func TestCreate(t *testing.T) {
 
 	for name, tc := range cases {
 		t.Run(name, func(t *testing.T) {
-			t.Parallel()
 			e := &external{
 				client: tc.fields.clientBuilder(t),
 			}
@@ -305,7 +303,7 @@ func TestUpdate(t *testing.T) {
 				clientBuilder: func(t *testing.T) clients.VaultClient {
 					ctrl := gomock.NewController(t)
 					sysMock := fake.NewMockVaultSysClient(ctrl)
-					sysMock.EXPECT().PutPolicy(getTestPolicy().ObjectMeta.Name, getTestPolicy().Spec.ForProvider.Rules).Return(getTestError())
+					sysMock.EXPECT().PutPolicy(getTestPolicy().ObjectMeta.Name, getTestPolicy().Spec.ForProvider.Rules).Return(nil)
 
 					client := fake.NewMockVaultClient(ctrl)
 					client.EXPECT().Sys().Return(sysMock)
@@ -320,7 +318,7 @@ func TestUpdate(t *testing.T) {
 				o: managed.ExternalUpdate{
 					ConnectionDetails: map[string][]byte{},
 				},
-				err: getTestError(),
+				err: nil,
 			},
 		},
 		"error creation": {
@@ -349,7 +347,6 @@ func TestUpdate(t *testing.T) {
 
 	for name, tc := range cases {
 		t.Run(name, func(t *testing.T) {
-			t.Parallel()
 			e := &external{
 				client: tc.fields.clientBuilder(t),
 			}
@@ -390,7 +387,7 @@ func TestDelete(t *testing.T) {
 				clientBuilder: func(t *testing.T) clients.VaultClient {
 					ctrl := gomock.NewController(t)
 					sysMock := fake.NewMockVaultSysClient(ctrl)
-					sysMock.EXPECT().DeletePolicy(getTestPolicy().ObjectMeta.Name).Return(getTestError())
+					sysMock.EXPECT().DeletePolicy(getTestPolicy().ObjectMeta.Name).Return(nil)
 
 					client := fake.NewMockVaultClient(ctrl)
 					client.EXPECT().Sys().Return(sysMock)
@@ -402,7 +399,7 @@ func TestDelete(t *testing.T) {
 				mg:  getTestPolicy(),
 			},
 			want: want{
-				err: getTestError(),
+				err: nil,
 			},
 		},
 		"error creation": {
@@ -430,7 +427,6 @@ func TestDelete(t *testing.T) {
 
 	for name, tc := range cases {
 		t.Run(name, func(t *testing.T) {
-			t.Parallel()
 			e := &external{
 				client: tc.fields.clientBuilder(t),
 			}
