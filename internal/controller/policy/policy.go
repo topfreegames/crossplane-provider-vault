@@ -18,7 +18,6 @@ package policy
 
 import (
 	"context"
-	"time"
 
 	"github.com/pkg/errors"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -133,8 +132,6 @@ func (c *external) Observe(ctx context.Context, mg resource.Managed) (managed.Ex
 	exists := err == nil && existingPolicyRules != ""
 	upToDate := policy.Spec.ForProvider.Rules == existingPolicyRules
 
-	time.Sleep(1 * time.Second)
-
 	if exists && upToDate {
 		policy.SetConditions(xpv1.Available())
 	}
@@ -161,9 +158,6 @@ func (c *external) Create(ctx context.Context, mg resource.Managed) (managed.Ext
 	if !ok {
 		return managed.ExternalCreation{}, errors.New(errNotPolicy)
 	}
-
-	// observation, oberr := c.client.Sys().GetPolicy(policy.Name)
-	// c.logger.Info("Trying to create policy", "name", policy.Name, "observation", observation, "obersvationErr", oberr, "addr", c.client.Address(), "token", c.client.Token())
 
 	err := c.client.Sys().PutPolicy(policy.Name, policy.Spec.ForProvider.Rules)
 	if err != nil {
