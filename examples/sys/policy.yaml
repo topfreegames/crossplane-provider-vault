@@ -1,7 +1,7 @@
 apiVersion: sys.vault.crossplane.io/v1alpha1
 kind: Policy
 metadata:
-  name: testNUMBER
+  name: test0
 spec:
   forProvider:
     rules: |
@@ -9,4 +9,4 @@ spec:
         capabilities = ["list"]
       }
   providerConfigRef:
-    name: example
+    name: provider-vault
