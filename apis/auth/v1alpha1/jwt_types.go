@@ -28,7 +28,7 @@ import (
 // JwtParameters are the configurable fields of a Jwt.
 type JwtParameters struct {
 	Backend        string   `json:"backend"`
-	Type           string   `json:"type"`
+	Type           string   `json:"role_type"`
 	BoundAudiences []string `json:"bound_audiences"`
 	UserClaim      string   `json:"user_claim"`
 }

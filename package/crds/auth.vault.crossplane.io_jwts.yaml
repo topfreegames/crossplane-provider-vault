@@ -70,14 +70,14 @@ spec:
                     items:
                       type: string
                     type: array
-                  type:
+                  role_type:
                     type: string
                   user_claim:
                     type: string
                 required:
                 - backend
                 - bound_audiences
-                - type
+                - role_type
                 - user_claim
                 type: object
               providerConfigRef:

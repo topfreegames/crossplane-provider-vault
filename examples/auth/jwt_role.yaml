@@ -5,8 +5,8 @@ metadata:
 spec:
   forProvider:
     backend: jwt
-    type: jwt
-    bound_audiences: []
+    role_type: jwt
+    bound_audiences: ["test"]
     user_claim: user_email
   providerConfigRef:
     name: provider-vault
