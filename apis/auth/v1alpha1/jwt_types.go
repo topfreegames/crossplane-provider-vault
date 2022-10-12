@@ -27,7 +27,10 @@ import (
 
 // JwtParameters are the configurable fields of a Jwt.
 type JwtParameters struct {
-	ConfigurableField string `json:"configurableField"`
+	Backend        string   `json:"backend"`
+	Type           string   `json:"type"`
+	BoundAudiences []string `json:"bound_audiences"`
+	UserClaim      string   `json:"user_claim"`
 }
 
 // JwtObservation are the observable fields of a Jwt.

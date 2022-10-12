@@ -18,7 +18,9 @@ package jwt
 
 import (
 	"context"
+	"fmt"
 
+	"github.com/mitchellh/mapstructure"
 	"github.com/pkg/errors"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -45,6 +47,10 @@ const (
 
 	errNewClient         = "cannot create new Service"
 	errNewExternalClient = "cannot create vault client from config"
+
+	errCreation = "cannot create JWT role"
+	errUpdate   = "cannot update JWT role"
+	errDelete   = "cannot delete JWT role"
 )
 
 // A NoOpService does nothing.
@@ -149,12 +155,20 @@ func (c *external) Observe(ctx context.Context, mg resource.Managed) (managed.Ex
 }
 
 func (c *external) Create(ctx context.Context, mg resource.Managed) (managed.ExternalCreation, error) {
-	cr, ok := mg.(*v1alpha1.Jwt)
+	role, ok := mg.(*v1alpha1.Jwt)
 	if !ok {
 		return managed.ExternalCreation{}, errors.New(errNotJwt)
 	}
 
-	c.logger.Info("Creating:", "cr", cr)
+	data, err := decodeData(role)
+	if err != nil {
+		return managed.ExternalCreation{}, fmt.Errorf("error decoding jwt role spec: %w", err)
+	}
+
+	_, err = c.client.Logical().Write(role.Spec.ForProvider.Backend, data)
+	if err != nil {
+		return managed.ExternalCreation{}, errors.Wrap(err, errCreation)
+	}
 
 	return managed.ExternalCreation{
 		// Optionally return any details that may be required to connect to the
@@ -164,12 +178,19 @@ func (c *external) Create(ctx context.Context, mg resource.Managed) (managed.Ext
 }
 
 func (c *external) Update(ctx context.Context, mg resource.Managed) (managed.ExternalUpdate, error) {
-	cr, ok := mg.(*v1alpha1.Jwt)
+	role, ok := mg.(*v1alpha1.Jwt)
 	if !ok {
 		return managed.ExternalUpdate{}, errors.New(errNotJwt)
 	}
 
-	c.logger.Info("Updating:", "cr", cr)
+	data, err := decodeData(role)
+	if err != nil {
+		return managed.ExternalUpdate{}, fmt.Errorf("error decoding jwt role spec: %w", err)
+	}
+	c.client.Logical().Write(role.Spec.ForProvider.Backend, data)
+	if err != nil {
+		return managed.ExternalUpdate{}, errors.Wrap(err, errUpdate)
+	}
 
 	return managed.ExternalUpdate{
 		// Optionally return any details that may be required to connect to the
@@ -187,4 +208,16 @@ func (c *external) Delete(ctx context.Context, mg resource.Managed) error {
 	c.logger.Info("Deleting:", "cr", cr)
 
 	return nil
+}
+
+func decodeData(data *v1alpha1.Jwt) (map[string]interface{}, error) {
+	d := map[string]interface{}{}
+	d["role_name"] = data.ObjectMeta.Name
+
+	err := mapstructure.Decode(data.Spec.ForProvider, &data)
+	if err != nil {
+		return nil, err
+	}
+
+	return d, nil
 }

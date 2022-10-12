@@ -64,10 +64,21 @@ spec:
               forProvider:
                 description: JwtParameters are the configurable fields of a Jwt.
                 properties:
-                  configurableField:
+                  backend:
+                    type: string
+                  bound_audiences:
+                    items:
+                      type: string
+                    type: array
+                  type:
+                    type: string
+                  user_claim:
                     type: string
                 required:
-                - configurableField
+                - backend
+                - bound_audiences
+                - type
+                - user_claim
                 type: object
               providerConfigRef:
                 default:

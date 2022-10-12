@@ -26,6 +26,7 @@ type VaultClientWrapper struct {
 // VaultClient wraps the vault client
 type VaultClient interface {
 	Sys() VaultSysClient
+	Logical() VaultLogicalClient
 }
 
 // NewVaultClient creates a new Vault client.
