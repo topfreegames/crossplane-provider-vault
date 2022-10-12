@@ -200,12 +200,15 @@ func (c *external) Update(ctx context.Context, mg resource.Managed) (managed.Ext
 }
 
 func (c *external) Delete(ctx context.Context, mg resource.Managed) error {
-	cr, ok := mg.(*v1alpha1.Jwt)
+	role, ok := mg.(*v1alpha1.Jwt)
 	if !ok {
 		return errors.New(errNotJwt)
 	}
 
-	c.logger.Info("Deleting:", "cr", cr)
+	_, err := c.client.Logical().Delete(role.Spec.ForProvider.Backend)
+	if err != nil {
+		return errors.Wrap(err, errDelete)
+	}
 
 	return nil
 }
