@@ -7,4 +7,4 @@ cover.out
 .vscode
 .idea
 .DS_Store
-.token
+vault.token
