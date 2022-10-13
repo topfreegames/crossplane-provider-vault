@@ -20,7 +20,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"reflect"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -140,7 +139,7 @@ func (c *external) Observe(ctx context.Context, mg resource.Managed) (managed.Ex
 	exists := false
 	upToDate := true
 
-	path := jwtAuthBackendRolePath(role.Spec.ForProvider.Backend, role.Name)
+	path := jwtAuthBackendRolePath(*role.Spec.ForProvider.Backend, role.Name)
 	response, err := c.client.Logical().Read(path)
 	if response != nil && err == nil {
 		exists = true
@@ -179,7 +178,7 @@ func (c *external) Create(ctx context.Context, mg resource.Managed) (managed.Ext
 		return managed.ExternalCreation{}, errors.New(errNotJwt)
 	}
 
-	path := jwtAuthBackendRolePath(role.Spec.ForProvider.Backend, role.Name)
+	path := jwtAuthBackendRolePath(*role.Spec.ForProvider.Backend, role.Name)
 
 	data, err := decodeData(role)
 	if err != nil {
@@ -208,7 +207,8 @@ func (c *external) Update(ctx context.Context, mg resource.Managed) (managed.Ext
 	if err != nil {
 		return managed.ExternalUpdate{}, fmt.Errorf("error decoding jwt role spec: %w", err)
 	}
-	c.client.Logical().Write(role.Spec.ForProvider.Backend, data)
+	path := jwtAuthBackendRolePath(*role.Spec.ForProvider.Backend, role.Name)
+	_, err = c.client.Logical().Write(path, data)
 	if err != nil {
 		return managed.ExternalUpdate{}, errors.Wrap(err, errUpdate)
 	}
@@ -226,7 +226,7 @@ func (c *external) Delete(ctx context.Context, mg resource.Managed) error {
 		return errors.New(errNotJwt)
 	}
 
-	path := jwtAuthBackendRolePath(role.Spec.ForProvider.Backend, role.Name)
+	path := jwtAuthBackendRolePath(*role.Spec.ForProvider.Backend, role.Name)
 	_, err := c.client.Logical().Delete(path)
 	if err != nil {
 		return errors.Wrap(err, errDelete)
@@ -249,18 +249,11 @@ func jwtAuthBackendRolePath(backend, role string) string {
 
 func isUpToDate(logger logging.Logger, crossplaneData, vaultData map[string]interface{}) bool {
 	for key, value := range crossplaneData {
-		if key == "role_name" || key == "backend" {
+		if key == "backend" {
 			continue
 		}
 		d, ok := vaultData[key]
-		logger.Debug("$$$$$$$$$$$$$$$$$$$$$$$$$")
-		logger.Debug("crossplane data -> vault data")
-		logger.Debug(fmt.Sprintf("%s: %+v (%s) -> %s: %+v (%s)", key, value, reflect.TypeOf(value), vaultData[key], d, reflect.TypeOf(d)))
-		logger.Debug("$$$$$$$$$$$$$$$$$$$$$$$$$")
-		if !ok || fmt.Sprintf("%v", value) != fmt.Sprintf("%v", value) {
-			logger.Debug("$$$$$$$$$$$$$$$$$$$$$$$$$")
-			logger.Debug(fmt.Sprintf("false because of %s", key))
-			logger.Debug("$$$$$$$$$$$$$$$$$$$$$$$$$")
+		if !ok || fmt.Sprintf("%v", value) != fmt.Sprintf("%v", d) {
 			return false
 		}
 	}
