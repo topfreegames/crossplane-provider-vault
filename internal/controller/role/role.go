@@ -18,6 +18,7 @@ package role
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/pkg/errors"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -149,12 +150,27 @@ func (c *external) Observe(ctx context.Context, mg resource.Managed) (managed.Ex
 }
 
 func (c *external) Create(ctx context.Context, mg resource.Managed) (managed.ExternalCreation, error) {
-	cr, ok := mg.(*v1alpha1.Role)
+	role, ok := mg.(*v1alpha1.Role)
 	if !ok {
 		return managed.ExternalCreation{}, errors.New(errNotRole)
 	}
 
-	c.logger.Info("Creating:", "cr", cr)
+	name := role.Name
+	authBackend := role.Spec.ForProvider.AuthBackend
+	credentialType := role.Spec.ForProvider.CredentialType
+	iamRoles := role.Spec.ForProvider.IamRoles
+
+	data := map[string]interface{}{}
+	data["credential_type"] = credentialType
+	data["role_arns"] = iamRoles
+	data["default_sts_ttl"] = 3600
+
+	c.logger.Debug("Creating role %q on AWS backend %q", name, authBackend)
+	_, err := c.client.Logical().Write(authBackend+"/roles/"+name, data)
+	if err != nil {
+		return managed.ExternalCreation{}, fmt.Errorf("error creating role %q for backend %q: %s", name, authBackend, err)
+	}
+	c.logger.Debug("Created role %q on AWS backend %q", name, authBackend)
 
 	return managed.ExternalCreation{
 		// Optionally return any details that may be required to connect to the
@@ -164,12 +180,12 @@ func (c *external) Create(ctx context.Context, mg resource.Managed) (managed.Ext
 }
 
 func (c *external) Update(ctx context.Context, mg resource.Managed) (managed.ExternalUpdate, error) {
-	cr, ok := mg.(*v1alpha1.Role)
+	role, ok := mg.(*v1alpha1.Role)
 	if !ok {
 		return managed.ExternalUpdate{}, errors.New(errNotRole)
 	}
 
-	c.logger.Info("Updating:", "cr", cr)
+	c.logger.Info("Updating:", "cr", role)
 
 	return managed.ExternalUpdate{
 		// Optionally return any details that may be required to connect to the
@@ -179,12 +195,12 @@ func (c *external) Update(ctx context.Context, mg resource.Managed) (managed.Ext
 }
 
 func (c *external) Delete(ctx context.Context, mg resource.Managed) error {
-	cr, ok := mg.(*v1alpha1.Role)
+	role, ok := mg.(*v1alpha1.Role)
 	if !ok {
 		return errors.New(errNotRole)
 	}
 
-	c.logger.Info("Deleting:", "cr", cr)
+	c.logger.Info("Deleting:", "cr", role)
 
 	return nil
 }
