@@ -23,6 +23,7 @@ package role
 import (
 	"context"
 	"fmt"
+	"log"
 
 	"github.com/pkg/errors"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -128,13 +129,22 @@ type external struct {
 }
 
 func (c *external) Observe(ctx context.Context, mg resource.Managed) (managed.ExternalObservation, error) {
-	cr, ok := mg.(*v1alpha1.Role)
+	role, ok := mg.(*v1alpha1.Role)
 	if !ok {
 		return managed.ExternalObservation{}, errors.New(errNotRole)
 	}
 
-	// These logger statements should be removed in the real implementation.
-	c.logger.Info("Observing:", "cr", cr)
+	name := role.Name
+	authBackend := role.Spec.ForProvider.AuthBackend
+
+	path := authBackend + "/roles/" + name
+
+	c.logger.Debug("[DEBUG] Reading role from %q", path)
+	_, err := c.client.Logical().Read(path)
+	if err != nil {
+		return managed.ExternalObservation{}, fmt.Errorf("error reading role %q: %s", path, err)
+	}
+	log.Printf("[DEBUG] Read role from %q", path)
 
 	return managed.ExternalObservation{
 		// Return false when the external resource does not exist. This lets
@@ -165,13 +175,15 @@ func (c *external) Create(ctx context.Context, mg resource.Managed) (managed.Ext
 	credentialType := role.Spec.ForProvider.CredentialType
 	iamRoles := role.Spec.ForProvider.IamRolesArn
 
+	path := authBackend + "/roles/" + name
+
 	data := map[string]interface{}{}
 	data["credential_type"] = credentialType
 	data["role_arns"] = iamRoles
 	data["default_sts_ttl"] = 3600
 
 	c.logger.Debug("Creating role %q on AWS backend %q", name, authBackend)
-	_, err := c.client.Logical().Write(authBackend+"/roles/"+name, data)
+	_, err := c.client.Logical().Write(path, data)
 	if err != nil {
 		return managed.ExternalCreation{}, fmt.Errorf("error creating role %q for backend %q: %s", name, authBackend, err)
 	}
@@ -196,13 +208,15 @@ func (c *external) Update(ctx context.Context, mg resource.Managed) (managed.Ext
 	credentialType := role.Spec.ForProvider.CredentialType
 	iamRoles := role.Spec.ForProvider.IamRolesArn
 
+	path := authBackend + "/roles/" + name
+
 	data := map[string]interface{}{}
 	data["credential_type"] = credentialType
 	data["role_arns"] = iamRoles
 	data["default_sts_ttl"] = 3600
 
 	c.logger.Debug("Updating (overwriting) role %q on AWS backend %q", name, authBackend)
-	_, err := c.client.Logical().Write(authBackend+"/roles/"+name, data)
+	_, err := c.client.Logical().Write(path, data)
 	if err != nil {
 		return managed.ExternalUpdate{}, fmt.Errorf("error updating (overwriting) role %q for backend %q: %s", name, authBackend, err)
 	}

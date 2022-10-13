@@ -8,6 +8,7 @@ import (
 type VaultLogicalClient interface {
 	Write(path string, data map[string]interface{}) (*vault.Secret, error)
 	Delete(path string) (*vault.Secret, error)
+	Read(path string) (*vault.Secret, error)
 }
 
 // Logical returns the vault logical for write usage
