@@ -22,9 +22,11 @@ package role
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 
+	"github.com/hashicorp/vault/api"
 	"github.com/pkg/errors"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -135,7 +137,7 @@ func (c *external) Observe(ctx context.Context, mg resource.Managed) (managed.Ex
 	}
 
 	name := role.Name
-	authBackend := role.Spec.ForProvider.AuthBackend
+	authBackend := role.Spec.ForProvider.Backend
 
 	path := authBackend + "/roles/" + name
 
@@ -170,24 +172,10 @@ func (c *external) Create(ctx context.Context, mg resource.Managed) (managed.Ext
 		return managed.ExternalCreation{}, errors.New(errNotRole)
 	}
 
-	name := role.Name
-	authBackend := role.Spec.ForProvider.AuthBackend
-	credentialType := role.Spec.ForProvider.CredentialType
-	iamRoles := role.Spec.ForProvider.IamRolesArn
-
-	path := authBackend + "/roles/" + name
-
-	data := map[string]interface{}{}
-	data["credential_type"] = credentialType
-	data["role_arns"] = iamRoles
-	data["default_sts_ttl"] = 3600
-
-	c.logger.Debug("Creating role %q on AWS backend %q", name, authBackend)
-	_, err := c.client.Logical().Write(path, data)
+	_, err := c.writeRole(role)
 	if err != nil {
-		return managed.ExternalCreation{}, fmt.Errorf("error creating role %q for backend %q: %s", name, authBackend, err)
+		return managed.ExternalCreation{}, fmt.Errorf("error creating role")
 	}
-	c.logger.Debug("Created role %q on AWS backend %q", name, authBackend)
 
 	return managed.ExternalCreation{
 		// Optionally return any details that may be required to connect to the
@@ -203,24 +191,10 @@ func (c *external) Update(ctx context.Context, mg resource.Managed) (managed.Ext
 		return managed.ExternalUpdate{}, errors.New(errNotRole)
 	}
 
-	name := role.Name
-	authBackend := role.Spec.ForProvider.AuthBackend
-	credentialType := role.Spec.ForProvider.CredentialType
-	iamRoles := role.Spec.ForProvider.IamRolesArn
-
-	path := authBackend + "/roles/" + name
-
-	data := map[string]interface{}{}
-	data["credential_type"] = credentialType
-	data["role_arns"] = iamRoles
-	data["default_sts_ttl"] = 3600
-
-	c.logger.Debug("Updating (overwriting) role %q on AWS backend %q", name, authBackend)
-	_, err := c.client.Logical().Write(path, data)
+	_, err := c.writeRole(role)
 	if err != nil {
-		return managed.ExternalUpdate{}, fmt.Errorf("error updating (overwriting) role %q for backend %q: %s", name, authBackend, err)
+		return managed.ExternalUpdate{}, fmt.Errorf("error updating role")
 	}
-	c.logger.Debug("Updated (overwritten) role %q on AWS backend %q", name, authBackend)
 
 	return managed.ExternalUpdate{
 		// Optionally return any details that may be required to connect to the
@@ -237,7 +211,7 @@ func (c *external) Delete(ctx context.Context, mg resource.Managed) error {
 	}
 
 	name := role.Name
-	authBackend := role.Spec.ForProvider.AuthBackend
+	authBackend := role.Spec.ForProvider.Backend
 
 	c.logger.Debug("Deleting role %q on AWS backend %q", name, authBackend)
 	_, err := c.client.Logical().Delete(authBackend + "/roles/" + name)
@@ -247,4 +221,72 @@ func (c *external) Delete(ctx context.Context, mg resource.Managed) error {
 	c.logger.Debug("Deleted role %q on AWS backend %q", name, authBackend)
 
 	return nil
+}
+
+func validate(role *v1alpha1.Role) error {
+
+	credentialType := role.Spec.ForProvider.CredentialType
+	iamRolesArn := role.Spec.ForProvider.IamRolesArn
+	policiesArn := role.Spec.ForProvider.PoliciesArn
+	policyDocument := role.Spec.ForProvider.PolicyDocument
+	iamGroups := role.Spec.ForProvider.IamGroups
+	userPath := role.Spec.ForProvider.UserPath
+	permissionsBoundaryArn := role.Spec.ForProvider.PermissionBoundaryArn
+	defaultStsTtl := role.Spec.ForProvider.DefaultStsTTL
+	maxStsTtl := role.Spec.ForProvider.MaxStsTTL
+
+	if policyDocument == "" && len(policiesArn) == 0 && len(iamRolesArn) == 0 && len(iamGroups) == 0 {
+		return fmt.Errorf("at least one of: `policy_document`, `policy_arns`, `role_arns` or `iam_groups` must be set")
+	}
+
+	if permissionsBoundaryArn != "" && credentialType != "iam_user" {
+		return fmt.Errorf("permissions_boundary_arn is only valid when credential_type is iam_user")
+	}
+
+	if userPath != "" && credentialType != "iam_user" {
+		return fmt.Errorf("user_path is only valid when credential_type is iam_user")
+	}
+
+	if defaultStsTtl > 0 && credentialType == "assumed_role" || defaultStsTtl > 0 && credentialType == "federation_token" {
+		return fmt.Errorf("default_sts_ttl is only valid when credential_type is assumed_role or federation_token")
+	}
+
+	if maxStsTtl > 0 && credentialType == "assumed_role" || maxStsTtl > 0 && credentialType == "federation_token" {
+		return fmt.Errorf("max_sts_ttl is only valid when credential_type is assumed_role or federation_token")
+	}
+
+	return nil
+}
+
+func decodeData(role *v1alpha1.Role) (map[string]interface{}, error) {
+	d := map[string]interface{}{}
+	jsonObj, _ := json.Marshal(role.Spec.ForProvider)
+	json.Unmarshal(jsonObj, &d)
+	d["role_name"] = role.ObjectMeta.Name
+	return d, nil
+}
+
+func (c *external) writeRole(role *v1alpha1.Role) (*api.Secret, error) {
+	validErr := validate(role)
+	if validErr != nil {
+		return nil, fmt.Errorf("Validation Error for AWS Secret Backend Role: %w", validErr)
+	}
+
+	data, err := decodeData(role)
+	if err != nil {
+		return nil, fmt.Errorf("error decoding jwt role spec: %w", err)
+	}
+
+	name := role.Name
+	backend := role.Spec.ForProvider.Backend
+	path := backend + "/roles/" + name
+
+	c.logger.Debug("Creating/Updating role %q on AWS backend %q", name, backend)
+	secret, err := c.client.Logical().Write(path, data)
+	if err != nil {
+		return nil, fmt.Errorf("error creating role %q for backend %q: %s", name, backend, err)
+	}
+	c.logger.Debug("Created/Updated role %q on AWS backend %q", name, backend)
+
+	return secret, nil
 }

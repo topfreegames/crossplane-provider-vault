@@ -27,9 +27,16 @@ import (
 
 // RoleParameters are the configurable fields of a Role.
 type RoleParameters struct {
-	AuthBackend    string   `json:"authBackend" binding:"required"`
-	CredentialType string   `json:"credentialType" binding:"required"`
-	IamRolesArn    []string `json:"iamRoles" binding:"required"`
+	Backend               string   `json:"authBackend" binding:"required"`
+	CredentialType        string   `json:"credentialType" binding:"required"`
+	IamRolesArn           []string `json:"iamRoles" binding:"required"`
+	PoliciesArn           []string `json:"policiesArn" binding:"required"`
+	PolicyDocument        string   `json:"policyDocument" binding:"required"`
+	IamGroups             []string `json:"iamGroups" binding:"required"`
+	UserPath              string   `json:"userPath" binding:"required"`
+	PermissionBoundaryArn string   `json:"permissionsBoundaryArn" binding:"required"`
+	DefaultStsTTL         int      `json:"defaultStsTtl" binding:"required"`
+	MaxStsTTL             int      `json:"maxStsTtl" binding:"required"`
 }
 
 // RoleObservation are the observable fields of a Role.
