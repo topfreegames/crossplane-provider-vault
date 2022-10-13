@@ -23,14 +23,13 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 
 	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
-	"github.com/gofrs/uuid"
 )
 
 // RoleParameters are the configurable fields of a Role.
 type RoleParameters struct {
-	AuthBackend    string      `json:"authBackend" binding:"required"`
-	CredentialType string      `json:"credentialType" binding:"required"`
-	IamRoles       []uuid.UUID `json:"iamRoles" binding:"required"`
+	AuthBackend    string   `json:"authBackend" binding:"required"`
+	CredentialType string   `json:"credentialType" binding:"required"`
+	IamRolesArn    []string `json:"iamRoles" binding:"required"`
 }
 
 // RoleObservation are the observable fields of a Role.

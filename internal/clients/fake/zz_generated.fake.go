@@ -50,6 +50,20 @@ func (m *MockVaultClient) EXPECT() *MockVaultClientMockRecorder {
 	return m.recorder
 }
 
+// Logical mocks base method.
+func (m *MockVaultClient) Logical() clients.VaultLogicalClient {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Logical")
+	ret0, _ := ret[0].(clients.VaultLogicalClient)
+	return ret0
+}
+
+// Logical indicates an expected call of Logical.
+func (mr *MockVaultClientMockRecorder) Logical() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Logical", reflect.TypeOf((*MockVaultClient)(nil).Logical))
+}
+
 // Sys mocks base method.
 func (m *MockVaultClient) Sys() clients.VaultSysClient {
 	m.ctrl.T.Helper()

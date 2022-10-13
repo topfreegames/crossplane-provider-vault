@@ -64,10 +64,18 @@ spec:
               forProvider:
                 description: RoleParameters are the configurable fields of a Role.
                 properties:
-                  configurableField:
+                  authBackend:
                     type: string
+                  credentialType:
+                    type: string
+                  iamRoles:
+                    items:
+                      type: string
+                    type: array
                 required:
-                - configurableField
+                - authBackend
+                - credentialType
+                - iamRoles
                 type: object
               providerConfigRef:
                 default:

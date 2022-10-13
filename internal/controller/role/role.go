@@ -158,7 +158,7 @@ func (c *external) Create(ctx context.Context, mg resource.Managed) (managed.Ext
 	name := role.Name
 	authBackend := role.Spec.ForProvider.AuthBackend
 	credentialType := role.Spec.ForProvider.CredentialType
-	iamRoles := role.Spec.ForProvider.IamRoles
+	iamRoles := role.Spec.ForProvider.IamRolesArn
 
 	data := map[string]interface{}{}
 	data["credential_type"] = credentialType
@@ -200,7 +200,15 @@ func (c *external) Delete(ctx context.Context, mg resource.Managed) error {
 		return errors.New(errNotRole)
 	}
 
-	c.logger.Info("Deleting:", "cr", role)
+	name := role.Name
+	authBackend := role.Spec.ForProvider.AuthBackend
+
+	c.logger.Debug("Deleting role %q on AWS backend %q", name, authBackend)
+	_, err := c.client.Logical().Delete(authBackend + "/roles/" + name)
+	if err != nil {
+		return fmt.Errorf("error deleting role %q for backend %q: %s", name, authBackend, err)
+	}
+	c.logger.Debug("Deleted role %q on AWS backend %q", name, authBackend)
 
 	return nil
 }
