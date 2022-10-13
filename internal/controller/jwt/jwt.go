@@ -235,6 +235,7 @@ func (c *external) Delete(ctx context.Context, mg resource.Managed) error {
 	return nil
 }
 
+// TODO: Do not use the json tags to build the map (the return should be snakecase)
 func decodeData(data *v1alpha1.Jwt) (map[string]interface{}, error) {
 	d := map[string]interface{}{}
 	jsonObj, _ := json.Marshal(data.Spec.ForProvider)
@@ -247,6 +248,7 @@ func jwtAuthBackendRolePath(backend, role string) string {
 	return "auth/" + strings.Trim(backend, "/") + "/role/" + strings.Trim(role, "/")
 }
 
+// TODO: Ensure the casting before comparing types (probably this will be done field by field)
 func isUpToDate(logger logging.Logger, crossplaneData, vaultData map[string]interface{}) bool {
 	for key, value := range crossplaneData {
 		if key == "backend" {

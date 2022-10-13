@@ -25,6 +25,7 @@ import (
 	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
 )
 
+// TODO: Use json tags as camelcase
 // JwtParameters are the configurable fields of a Jwt Auth Backend Role.
 type JwtParameters struct {
 
