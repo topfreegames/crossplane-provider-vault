@@ -14,6 +14,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+/*
+This functions were developed based on https://github.com/hashicorp/terraform-provider-vault/blob/main/vault/resource_aws_secret_backend_role.go
+*/
+
 package role
 
 import (
@@ -149,6 +153,7 @@ func (c *external) Observe(ctx context.Context, mg resource.Managed) (managed.Ex
 	}, nil
 }
 
+// Create an AWS Secret Backend Role
 func (c *external) Create(ctx context.Context, mg resource.Managed) (managed.ExternalCreation, error) {
 	role, ok := mg.(*v1alpha1.Role)
 	if !ok {
@@ -179,13 +184,29 @@ func (c *external) Create(ctx context.Context, mg resource.Managed) (managed.Ext
 	}, nil
 }
 
+// Update an AWS Secret Backend Role - Thats the same approach we use for create it.
 func (c *external) Update(ctx context.Context, mg resource.Managed) (managed.ExternalUpdate, error) {
 	role, ok := mg.(*v1alpha1.Role)
 	if !ok {
 		return managed.ExternalUpdate{}, errors.New(errNotRole)
 	}
 
-	c.logger.Info("Updating:", "cr", role)
+	name := role.Name
+	authBackend := role.Spec.ForProvider.AuthBackend
+	credentialType := role.Spec.ForProvider.CredentialType
+	iamRoles := role.Spec.ForProvider.IamRolesArn
+
+	data := map[string]interface{}{}
+	data["credential_type"] = credentialType
+	data["role_arns"] = iamRoles
+	data["default_sts_ttl"] = 3600
+
+	c.logger.Debug("Updating (overwriting) role %q on AWS backend %q", name, authBackend)
+	_, err := c.client.Logical().Write(authBackend+"/roles/"+name, data)
+	if err != nil {
+		return managed.ExternalUpdate{}, fmt.Errorf("error updating (overwriting) role %q for backend %q: %s", name, authBackend, err)
+	}
+	c.logger.Debug("Updated (overwritten) role %q on AWS backend %q", name, authBackend)
 
 	return managed.ExternalUpdate{
 		// Optionally return any details that may be required to connect to the
@@ -194,6 +215,7 @@ func (c *external) Update(ctx context.Context, mg resource.Managed) (managed.Ext
 	}, nil
 }
 
+// Delete an AWS Secret Backend Role
 func (c *external) Delete(ctx context.Context, mg resource.Managed) error {
 	role, ok := mg.(*v1alpha1.Role)
 	if !ok {
