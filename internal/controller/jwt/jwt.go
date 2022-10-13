@@ -20,12 +20,14 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"reflect"
 	"strings"
 
 	"github.com/pkg/errors"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
 	"github.com/crossplane/crossplane-runtime/pkg/connection"
 	"github.com/crossplane/crossplane-runtime/pkg/controller"
 	"github.com/crossplane/crossplane-runtime/pkg/event"
@@ -136,16 +138,23 @@ func (c *external) Observe(ctx context.Context, mg resource.Managed) (managed.Ex
 	}
 
 	exists := false
+	upToDate := true
+
 	path := jwtAuthBackendRolePath(role.Spec.ForProvider.Backend, role.Name)
 	response, err := c.client.Logical().Read(path)
 	if response != nil && err == nil {
 		exists = true
+
+		crossplaneData, err := decodeData(role)
+		if err != nil {
+			return managed.ExternalObservation{}, fmt.Errorf("error decoding data from role: %w", err)
+		}
+		upToDate = isUpToDate(c.logger, crossplaneData, response.Data)
 	}
 
-	// crosplaneData, err := decodeData(role)
-	// if err != nil {
-	// 	return managed.ExternalObservation{}, fmt.Errorf("error decoding data from role: %w", err)
-	// }
+	if exists && upToDate {
+		role.SetConditions(xpv1.Available())
+	}
 
 	return managed.ExternalObservation{
 		// Return false when the external resource does not exist. This lets
@@ -156,7 +165,7 @@ func (c *external) Observe(ctx context.Context, mg resource.Managed) (managed.Ex
 		// Return false when the external resource exists, but it not up to date
 		// with the desired managed resource state. This lets the managed
 		// resource reconciler know that it needs to call Update.
-		ResourceUpToDate: false,
+		ResourceUpToDate: upToDate,
 
 		// Return any details that may be required to connect to the external
 		// resource. These will be stored as the connection secret.
@@ -238,11 +247,20 @@ func jwtAuthBackendRolePath(backend, role string) string {
 	return "auth/" + strings.Trim(backend, "/") + "/role/" + strings.Trim(role, "/")
 }
 
-func isUpToDate(crossplaneData, vaultData map[string]interface{}) bool {
-	return false
+func isUpToDate(logger logging.Logger, crossplaneData, vaultData map[string]interface{}) bool {
 	for key, value := range crossplaneData {
-
-		if vaultData[key] != value {
+		if key == "role_name" || key == "backend" {
+			continue
+		}
+		d, ok := vaultData[key]
+		logger.Debug("$$$$$$$$$$$$$$$$$$$$$$$$$")
+		logger.Debug("crossplane data -> vault data")
+		logger.Debug(fmt.Sprintf("%s: %+v (%s) -> %s: %+v (%s)", key, value, reflect.TypeOf(value), vaultData[key], d, reflect.TypeOf(d)))
+		logger.Debug("$$$$$$$$$$$$$$$$$$$$$$$$$")
+		if !ok || fmt.Sprintf("%v", value) != fmt.Sprintf("%v", value) {
+			logger.Debug("$$$$$$$$$$$$$$$$$$$$$$$$$")
+			logger.Debug(fmt.Sprintf("false because of %s", key))
+			logger.Debug("$$$$$$$$$$$$$$$$$$$$$$$$$")
 			return false
 		}
 	}

@@ -62,22 +62,110 @@ spec:
                 - Delete
                 type: string
               forProvider:
-                description: JwtParameters are the configurable fields of a Jwt.
+                description: JwtParameters are the configurable fields of a Jwt Auth
+                  Backend Role.
                 properties:
-                  backend:
-                    type: string
-                  bound_audiences:
+                  allowed_redirect_uris:
+                    description: The list of allowed values for redirect_uri during
+                      OIDC logins. Required for OIDC roles
                     items:
                       type: string
                     type: array
+                  backend:
+                    description: The unique name of the auth backend to configure.
+                      Defaults to jwt.
+                    type: string
+                  bound_audiences:
+                    description: List of aud claims to match against. Any match is
+                      sufficient. Required for roles of type jwt, optional for roles
+                      of type oidc)
+                    items:
+                      type: string
+                    type: array
+                  bound_claims:
+                    additionalProperties:
+                      type: string
+                    description: f set, a map of claims to values to match against.
+                      A claim's value must be a string, which may contain one value
+                      or multiple comma-separated values, e.g. "red" or "red,green,blue"
+                    type: object
+                  bound_claims_type:
+                    description: 'How to interpret values in the claims/values map
+                      (bound_claims): can be either string (exact match) or glob (wildcard
+                      match). Requires Vault 1.4.0 or above.'
+                    type: string
+                  bound_subject:
+                    description: If set, requires that the sub claim matches this
+                      value.
+                    type: string
+                  claim_mappings:
+                    additionalProperties:
+                      type: string
+                    description: If set, a map of claims (keys) to be copied to specified
+                      metadata fields (values).
+                    type: object
+                  clock_skew_leeway:
+                    description: The amount of leeway to add to all claims to account
+                      for clock skew, in seconds. Defaults to 60 seconds if set to
+                      0 and can be disabled if set to -1. Only applicable with "jwt"
+                      roles.
+                    type: integer
+                  expiration_leeway:
+                    description: The amount of leeway to add to expiration (exp) claims
+                      to account for clock skew, in seconds. Defaults to 60 seconds
+                      if set to 0 and can be disabled if set to -1. Only applicable
+                      with "jwt" roles.
+                    type: integer
+                  groups_claim:
+                    description: The claim to use to uniquely identify the set of
+                      groups to which the user belongs; this will be used as the names
+                      for the Identity group aliases created due to a successful login.
+                      The claim value must be a list of strings.
+                    type: string
+                  max_age:
+                    description: Specifies the allowable elapsed time in seconds since
+                      the last time the user was actively authenticated with the OIDC
+                      provider.
+                    type: boolean
+                  namespace:
+                    description: The namespace to provision the resource in. The value
+                      should not contain leading or trailing forward slashes. The
+                      namespace is always relative to the provider's configured namespace
+                    type: string
+                  not_before_leeway:
+                    description: The amount of leeway to add to not before (nbf) claims
+                      to account for clock skew, in seconds. Defaults to 60 seconds
+                      if set to 0 and can be disabled if set to -1. Only applicable
+                      with "jwt" roles.
+                    type: integer
+                  oidc_scopes:
+                    additionalProperties:
+                      type: string
+                    description: If set, a list of OIDC scopes to be used with an
+                      OIDC role. The standard scope "openid" is automatically included
+                      and need not be specified.
+                    type: object
                   role_type:
+                    description: Type of role, either "oidc" (default) or "jwt"
                     type: string
                   user_claim:
+                    description: The claim to use to uniquely identify the user; this
+                      will be used as the name for the Identity entity alias created
+                      due to a successful login.
                     type: string
+                  user_claim_json_pointer:
+                    description: Specifies if the user_claim value uses JSON pointer
+                      syntax for referencing claims. By default, the user_claim value
+                      will not use JSON pointer. Requires Vault 1.11+.
+                    type: string
+                  verbose_oidc_logging:
+                    description: Log received OIDC tokens and claims when debug-level
+                      logging is active. Not recommended in production since sensitive
+                      information may be present in OIDC responses.
+                    type: boolean
                 required:
-                - backend
                 - bound_audiences
-                - role_type
+                - namespace
                 - user_claim
                 type: object
               providerConfigRef:
