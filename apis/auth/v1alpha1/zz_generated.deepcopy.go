@@ -109,8 +109,14 @@ func (in *JwtParameters) DeepCopyInto(out *JwtParameters) {
 	}
 	if in.BoundAudiences != nil {
 		in, out := &in.BoundAudiences, &out.BoundAudiences
-		*out = make([]string, len(*in))
-		copy(*out, *in)
+		*out = make([]*string, len(*in))
+		for i := range *in {
+			if (*in)[i] != nil {
+				in, out := &(*in)[i], &(*out)[i]
+				*out = new(string)
+				**out = **in
+			}
+		}
 	}
 	if in.UserClaimJsonPointer != nil {
 		in, out := &in.UserClaimJsonPointer, &out.UserClaimJsonPointer

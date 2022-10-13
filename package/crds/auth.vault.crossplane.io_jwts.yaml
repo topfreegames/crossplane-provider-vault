@@ -164,7 +164,6 @@ spec:
                       information may be present in OIDC responses.
                     type: boolean
                 required:
-                - bound_audiences
                 - namespace
                 - user_claim
                 type: object

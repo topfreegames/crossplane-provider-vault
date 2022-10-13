@@ -39,7 +39,8 @@ type JwtParameters struct {
 
 	// List of aud claims to match against. Any match is sufficient.
 	// Required for roles of type jwt, optional for roles of type oidc)
-	BoundAudiences []string `json:"bound_audiences"`
+	// +optional
+	BoundAudiences []*string `json:"bound_audiences,omitempty"`
 
 	// The claim to use to uniquely identify the user; this will be used
 	// as the name for the Identity entity alias created due to a successful login.
