@@ -26,6 +26,7 @@ import (
 	"fmt"
 	"log"
 
+	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
 	"github.com/hashicorp/vault/api"
 	"github.com/pkg/errors"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -53,6 +54,10 @@ const (
 
 	errNewClient         = "cannot create new Service"
 	errNewExternalClient = "cannot create vault client from config"
+	errCreation          = "cannot create secret backend role"
+	errUpdate            = "cannot update secret backend role"
+	errDelete            = "cannot delete secret backend role"
+	errRead              = "cannot read secret backend role"
 )
 
 // A NoOpService does nothing.
@@ -142,22 +147,29 @@ func (c *external) Observe(ctx context.Context, mg resource.Managed) (managed.Ex
 	path := authBackend + "/roles/" + name
 
 	c.logger.Debug("[DEBUG] Reading role from %q", path)
-	_, err := c.client.Logical().Read(path)
+	secret, err := c.client.Logical().Read(path)
 	if err != nil {
-		return managed.ExternalObservation{}, fmt.Errorf("error reading role %q: %s", path, err)
+		return managed.ExternalObservation{}, errors.Wrap(err, errRead)
 	}
 	log.Printf("[DEBUG] Read role from %q", path)
+
+	exists := err == nil && secret != nil
+	upToDate := role.Spec.ForProvider.Backend == secret.Data["backend"]
+
+	if exists && upToDate {
+		role.SetConditions(xpv1.Available())
+	}
 
 	return managed.ExternalObservation{
 		// Return false when the external resource does not exist. This lets
 		// the managed resource reconciler know that it needs to call Create to
 		// (re)create the resource, or that it has successfully been deleted.
-		ResourceExists: true,
+		ResourceExists: exists,
 
 		// Return false when the external resource exists, but it not up to date
 		// with the desired managed resource state. This lets the managed
 		// resource reconciler know that it needs to call Update.
-		ResourceUpToDate: true,
+		ResourceUpToDate: upToDate,
 
 		// Return any details that may be required to connect to the external
 		// resource. These will be stored as the connection secret.
@@ -174,7 +186,7 @@ func (c *external) Create(ctx context.Context, mg resource.Managed) (managed.Ext
 
 	_, err := c.writeRole(role)
 	if err != nil {
-		return managed.ExternalCreation{}, fmt.Errorf("error creating role")
+		return managed.ExternalCreation{}, errors.Wrap(err, errCreation)
 	}
 
 	return managed.ExternalCreation{
@@ -193,7 +205,7 @@ func (c *external) Update(ctx context.Context, mg resource.Managed) (managed.Ext
 
 	_, err := c.writeRole(role)
 	if err != nil {
-		return managed.ExternalUpdate{}, fmt.Errorf("error updating role")
+		return managed.ExternalUpdate{}, errors.Wrap(err, errUpdate)
 	}
 
 	return managed.ExternalUpdate{
@@ -216,7 +228,7 @@ func (c *external) Delete(ctx context.Context, mg resource.Managed) error {
 	c.logger.Debug("Deleting role %q on AWS backend %q", name, authBackend)
 	_, err := c.client.Logical().Delete(authBackend + "/roles/" + name)
 	if err != nil {
-		return fmt.Errorf("error deleting role %q for backend %q: %s", name, authBackend, err)
+		return errors.Wrap(err, errDelete)
 	}
 	c.logger.Debug("Deleted role %q on AWS backend %q", name, authBackend)
 
