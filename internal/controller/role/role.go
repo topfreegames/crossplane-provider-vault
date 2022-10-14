@@ -235,6 +235,7 @@ func (c *external) Delete(ctx context.Context, mg resource.Managed) error {
 	return nil
 }
 
+// validate the role as some fields are only allowed in case another field has a different value
 func validate(role *v1alpha1.Role) error {
 
 	credentialType := role.Spec.ForProvider.CredentialType
@@ -259,11 +260,11 @@ func validate(role *v1alpha1.Role) error {
 		return fmt.Errorf("user_path is only valid when credential_type is iam_user")
 	}
 
-	if defaultStsTtl > 0 && credentialType == "assumed_role" || defaultStsTtl > 0 && credentialType == "federation_token" {
+	if !(defaultStsTtl > 0 && credentialType == "assumed_role" || defaultStsTtl > 0 && credentialType == "federation_token") {
 		return fmt.Errorf("default_sts_ttl is only valid when credential_type is assumed_role or federation_token")
 	}
 
-	if maxStsTtl > 0 && credentialType == "assumed_role" || maxStsTtl > 0 && credentialType == "federation_token" {
+	if !(maxStsTtl > 0 && credentialType == "assumed_role" || maxStsTtl > 0 && credentialType == "federation_token") {
 		return fmt.Errorf("max_sts_ttl is only valid when credential_type is assumed_role or federation_token")
 	}
 
@@ -278,6 +279,7 @@ func decodeData(role *v1alpha1.Role) (map[string]interface{}, error) {
 	return d, nil
 }
 
+// write role validate the role and create it
 func (c *external) writeRole(role *v1alpha1.Role) (*api.Secret, error) {
 	validErr := validate(role)
 	if validErr != nil {
