@@ -18,8 +18,8 @@ package jwt
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
+	"reflect"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -144,10 +144,7 @@ func (c *external) Observe(ctx context.Context, mg resource.Managed) (managed.Ex
 	if response != nil && err == nil {
 		exists = true
 
-		crossplaneData, err := decodeData(role)
-		if err != nil {
-			return managed.ExternalObservation{}, fmt.Errorf("error decoding data from role: %w", err)
-		}
+		crossplaneData := decodeData(role)
 		upToDate = isUpToDate(c.logger, crossplaneData, response.Data)
 	}
 
@@ -180,12 +177,9 @@ func (c *external) Create(ctx context.Context, mg resource.Managed) (managed.Ext
 
 	path := jwtAuthBackendRolePath(*role.Spec.ForProvider.Backend, role.Name)
 
-	data, err := decodeData(role)
-	if err != nil {
-		return managed.ExternalCreation{}, fmt.Errorf("error decoding jwt role spec: %w", err)
-	}
+	data := decodeData(role)
 
-	_, err = c.client.Logical().Write(path, data)
+	_, err := c.client.Logical().Write(path, data)
 	if err != nil {
 		return managed.ExternalCreation{}, errors.Wrap(err, errCreation)
 	}
@@ -203,12 +197,9 @@ func (c *external) Update(ctx context.Context, mg resource.Managed) (managed.Ext
 		return managed.ExternalUpdate{}, errors.New(errNotJwt)
 	}
 
-	data, err := decodeData(role)
-	if err != nil {
-		return managed.ExternalUpdate{}, fmt.Errorf("error decoding jwt role spec: %w", err)
-	}
+	data := decodeData(role)
 	path := jwtAuthBackendRolePath(*role.Spec.ForProvider.Backend, role.Name)
-	_, err = c.client.Logical().Write(path, data)
+	_, err := c.client.Logical().Write(path, data)
 	if err != nil {
 		return managed.ExternalUpdate{}, errors.Wrap(err, errUpdate)
 	}
@@ -236,12 +227,80 @@ func (c *external) Delete(ctx context.Context, mg resource.Managed) error {
 }
 
 // TODO: Do not use the json tags to build the map (the return should be snakecase)
-func decodeData(data *v1alpha1.Jwt) (map[string]interface{}, error) {
+func decodeData(data *v1alpha1.Jwt) map[string]interface{} {
 	d := map[string]interface{}{}
-	jsonObj, _ := json.Marshal(data.Spec.ForProvider)
-	json.Unmarshal(jsonObj, &d)
 	d["role_name"] = data.ObjectMeta.Name
-	return d, nil
+
+	spec := data.Spec.ForProvider
+	if spec.Namespace != nil {
+		d["namespace"] = spec.Namespace
+	}
+
+	if spec.RoleType != nil {
+		d["role_type"] = spec.RoleType
+	}
+
+	if spec.BoundAudiences != nil {
+		d["bound_audiences"] = spec.BoundAudiences
+	}
+
+	d["user_claim"] = spec.UserClaim
+
+	if spec.UserClaimJsonPointer != nil {
+		d["user_claim_json_pointer"] = spec.UserClaimJsonPointer
+	}
+
+	if spec.BoundSubject != nil {
+		d["bound_subject"] = spec.BoundSubject
+	}
+
+	if spec.BoundClaims != nil {
+		d["bound_claims"] = spec.BoundClaims
+	}
+
+	if spec.BoundClaimsType != nil {
+		d["bound_claims_type"] = spec.BoundClaimsType
+	}
+
+	if spec.ClaimMappings != nil {
+		d["claim_mappings"] = spec.ClaimMappings
+	}
+
+	if spec.OIDCScopes != nil {
+		d["oidc_scopes"] = spec.OIDCScopes
+	}
+
+	if spec.GroupsClaim != nil {
+		d["groups_claim"] = spec.GroupsClaim
+	}
+	if spec.Backend != nil {
+		d["backend"] = spec.Backend
+	}
+
+	if spec.AllowedRedirectURIs != nil {
+		d["allowed_redirect_uris"] = spec.AllowedRedirectURIs
+	}
+
+	if spec.ClockSkewLeeway != nil {
+		d["clock_skew_leeway"] = spec.ClockSkewLeeway
+	}
+
+	if spec.ExpirationLeeway != nil {
+		d["expiration_leeway"] = spec.ExpirationLeeway
+	}
+
+	if spec.NotBeforeLeeway != nil {
+		d["not_before_leeway"] = spec.NotBeforeLeeway
+	}
+
+	if spec.VerboseOIDCLogging != nil {
+		d["verbose_oidc_logging"] = spec.VerboseOIDCLogging
+	}
+	if spec.MaxAge != nil {
+		d["max_age"] = spec.MaxAge
+	}
+
+	return d
 }
 
 func jwtAuthBackendRolePath(backend, role string) string {
@@ -250,14 +309,34 @@ func jwtAuthBackendRolePath(backend, role string) string {
 
 // TODO: Ensure the casting before comparing types (probably this will be done field by field)
 func isUpToDate(logger logging.Logger, crossplaneData, vaultData map[string]interface{}) bool {
+	logger.Debug("##############################")
+	logger.Debug(fmt.Sprintf("crossplane %+v", crossplaneData))
+	logger.Debug(fmt.Sprintf("vault %+v", vaultData))
+
 	for key, value := range crossplaneData {
-		if key == "backend" {
+
+		if key == "role_name" || key == "backend" {
 			continue
 		}
-		d, ok := vaultData[key]
-		if !ok || fmt.Sprintf("%v", value) != fmt.Sprintf("%v", d) {
+
+		vaultValue, ok := vaultData[key]
+		if !ok {
+			logger.Debug("##############################")
+			logger.Debug("FALSE")
+			logger.Debug(fmt.Sprintf("crossplane %s: %+v", key, value))
 			return false
 		}
+
+		if key == "bound_claims" || key == "claim_mappings" || key == "oidc_scopes" {
+			if !reflect.DeepEqual(&value, vaultValue) {
+				logger.Debug("##############################")
+				logger.Debug("FALSE")
+				logger.Debug(fmt.Sprintf("VAULT %s: %+v", key, vaultValue))
+				logger.Debug(fmt.Sprintf("crossplane %s: %+v", key, value))
+				return false
+			}
+		}
 	}
+
 	return true
 }
