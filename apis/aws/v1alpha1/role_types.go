@@ -32,6 +32,7 @@ type RoleParameters struct {
 	Backend string `json:"authBackend"`
 
 	// CredentialType - (Required) Specifies the type of credential to be used when retrieving credentials from the role. Must be one of iam_user, assumed_role, or federation_token.
+	// https://www.vaultproject.io/docs/secrets/aws
 	// +required
 	CredentialType string `json:"credentialType"`
 

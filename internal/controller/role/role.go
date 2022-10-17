@@ -245,27 +245,33 @@ func validate(role *v1alpha1.Role) error {
 	iamGroups := role.Spec.ForProvider.IamGroups
 	userPath := role.Spec.ForProvider.UserPath
 	permissionsBoundaryArn := role.Spec.ForProvider.PermissionBoundaryArn
-	defaultStsTtl := role.Spec.ForProvider.DefaultStsTTL
-	maxStsTtl := role.Spec.ForProvider.MaxStsTTL
+	defaultStsTTL := role.Spec.ForProvider.DefaultStsTTL
+	maxStsTTL := role.Spec.ForProvider.MaxStsTTL
+
+	if credentialType != "iam_user" && credentialType != "assumed_role" && credentialType != "federation_token" {
+		return fmt.Errorf("must be one of iam_user, assumed_role, or federation_token")
+	}
 
 	if policyDocument == "" && len(policiesArn) == 0 && len(iamRolesArn) == 0 && len(iamGroups) == 0 {
 		return fmt.Errorf("at least one of: `policy_document`, `policy_arns`, `role_arns` or `iam_groups` must be set")
 	}
 
-	if permissionsBoundaryArn != "" && credentialType != "iam_user" {
-		return fmt.Errorf("permissions_boundary_arn is only valid when credential_type is iam_user")
+	if credentialType != "iam_user" {
+		if permissionsBoundaryArn != "" {
+			return fmt.Errorf("permissions_boundary_arn is only valid when credential_type is iam_user")
+		}
+		if userPath != "" {
+			return fmt.Errorf("user_path is only valid when credential_type is iam_user")
+		}
 	}
 
-	if userPath != "" && credentialType != "iam_user" {
-		return fmt.Errorf("user_path is only valid when credential_type is iam_user")
-	}
-
-	if !(defaultStsTtl > 0 && credentialType == "assumed_role" || defaultStsTtl > 0 && credentialType == "federation_token") {
-		return fmt.Errorf("default_sts_ttl is only valid when credential_type is assumed_role or federation_token")
-	}
-
-	if !(maxStsTtl > 0 && credentialType == "assumed_role" || maxStsTtl > 0 && credentialType == "federation_token") {
-		return fmt.Errorf("max_sts_ttl is only valid when credential_type is assumed_role or federation_token")
+	if credentialType != "assumed_role" && credentialType != "federation_token" {
+		if maxStsTTL > 0 {
+			return fmt.Errorf("max_sts_ttl is only valid when credential_type is assumed_role or federation_token")
+		}
+		if defaultStsTTL > 0 {
+			return fmt.Errorf("default_sts_ttl is only valid when credential_type is assumed_role or federation_token")
+		}
 	}
 
 	return nil
@@ -283,7 +289,7 @@ func decodeData(role *v1alpha1.Role) (map[string]interface{}, error) {
 func (c *external) writeRole(role *v1alpha1.Role) (*api.Secret, error) {
 	validErr := validate(role)
 	if validErr != nil {
-		return nil, fmt.Errorf("Validation Error for AWS Secret Backend Role: %w", validErr)
+		return nil, fmt.Errorf("validation error for AWS Secret Backend Role: %w", validErr)
 	}
 
 	data, err := decodeData(role)
@@ -295,12 +301,13 @@ func (c *external) writeRole(role *v1alpha1.Role) (*api.Secret, error) {
 	backend := role.Spec.ForProvider.Backend
 	path := backend + "/roles/" + name
 
-	c.logger.Debug("Creating/Updating role %q on AWS backend %q", name, backend)
+	// c.logger.Debug("Creating/Updating role %q on AWS backend %q", name, backend)
 	secret, err := c.client.Logical().Write(path, data)
 	if err != nil {
-		return nil, fmt.Errorf("error creating role %q for backend %q: %s", name, backend, err)
+		// c.logger.Debug(fmt.Sprintf("error creating role %q for backend %q: %s", name, backend, err))
+		return nil, errors.Wrap(err, errCreation)
 	}
-	c.logger.Debug("Created/Updated role %q on AWS backend %q", name, backend)
+	// c.logger.Debug("Created/Updated role %q on AWS backend %q", name, backend)
 
 	return secret, nil
 }
