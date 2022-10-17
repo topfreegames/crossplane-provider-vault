@@ -25,60 +25,60 @@ import (
 	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
 )
 
-// TODO: Use json tags as camelcase
 // JwtParameters are the configurable fields of a Jwt Auth Backend Role.
 type JwtParameters struct {
 
 	// The namespace to provision the resource in. The value should not contain
 	// leading or trailing forward slashes. The namespace is always relative to
 	// the provider's configured namespace
-	Namespace string `json:"namespace"`
+	// +optional
+	Namespace *string `json:"namespace"`
 
 	// Type of role, either "oidc" (default) or "jwt"
 	// +optional
-	RoleType *string `json:"role_type,omitempty"`
+	RoleType *string `json:"type,omitempty"`
 
 	// List of aud claims to match against. Any match is sufficient.
 	// Required for roles of type jwt, optional for roles of type oidc)
 	// +optional
-	BoundAudiences []*string `json:"bound_audiences,omitempty"`
+	BoundAudiences []*string `json:"boundAudiences,omitempty"`
 
 	// The claim to use to uniquely identify the user; this will be used
 	// as the name for the Identity entity alias created due to a successful login.
-	UserClaim string `json:"user_claim"`
+	UserClaim *string `json:"userClaim"`
 
 	// Specifies if the user_claim value uses JSON pointer syntax for referencing claims.
 	// By default, the user_claim value will not use JSON pointer. Requires Vault 1.11+.
 	// +optional
-	UserClaimJsonPointer *string `json:"user_claim_json_pointer,omitempty"`
+	UserClaimJsonPointer *string `json:"userClaimJsonPointer,omitempty"`
 
 	// If set, requires that the sub claim matches this value.
 	// +optional
-	BoundSubject *string `json:"bound_subject,omitempty"`
+	BoundSubject *string `json:"boundSubject,omitempty"`
 
 	// f set, a map of claims to values to match against. A claim's value must be a string,
 	//  which may contain one value or multiple comma-separated values, e.g. "red" or "red,green,blue"
 	// +optional
-	BoundClaims map[string]string `json:"bound_claims,omitempty"`
+	BoundClaims map[string]string `json:"boundClaims,omitempty"`
 
 	// How to interpret values in the claims/values map (bound_claims): can be either string (exact match) or glob (wildcard match). Requires Vault 1.4.0 or above.
 	// +optional
-	BoundClaimsType *string `json:"bound_claims_type,omitempty"`
+	BoundClaimsType *string `json:"boundClaimsType,omitempty"`
 
 	// If set, a map of claims (keys) to be copied to specified metadata fields (values).
 	// +optional
-	ClaimMappings map[string]string `json:"claim_mappings,omitempty"`
+	ClaimMappings map[string]string `json:"claimMappings,omitempty"`
 
 	// If set, a list of OIDC scopes to be used with an OIDC role. The standard scope "openid" is
 	//  automatically included and need not be specified.
 	// +optional
-	OIDCScopes map[string]string `json:"oidc_scopes,omitempty"`
+	OIDCScopes map[string]string `json:"oidcScopes,omitempty"`
 
 	// The claim to use to uniquely identify the set of groups to which the user belongs;
 	// this will be used as the names for the Identity group aliases created due to a successful login.
 	// The claim value must be a list of strings.
 	// +optional
-	GroupsClaim *string `json:"groups_claim,omitempty"`
+	GroupsClaim *string `json:"groupsClaim,omitempty"`
 
 	// The unique name of the auth backend to configure. Defaults to jwt.
 	// +optional
@@ -86,32 +86,32 @@ type JwtParameters struct {
 
 	// The list of allowed values for redirect_uri during OIDC logins. Required for OIDC roles
 	// +optional
-	AllowedRedirectURIs []*string `json:"allowed_redirect_uris,omitempty"`
+	AllowedRedirectURIs []*string `json:"allowedRedirectURIs,omitempty"`
 
 	// The amount of leeway to add to all claims to account for clock skew, in seconds. Defaults to 60 seconds
 	// if set to 0 and can be disabled if set to -1. Only applicable with "jwt" roles.
 	// +optional
-	ClockSkewLeeway *int `json:"clock_skew_leeway,omitempty"`
+	ClockSkewLeeway *int `json:"clockSkewLeeway,omitempty"`
 
 	// The amount of leeway to add to expiration (exp) claims to account for clock skew, in seconds.
 	// Defaults to 60 seconds if set to 0 and can be disabled if set to -1. Only applicable with "jwt" roles.
 	// +optional
-	ExpirationLeeway *int `json:"expiration_leeway,omitempty"`
+	ExpirationLeeway *int `json:"expirationLeeway,omitempty"`
 
 	// The amount of leeway to add to not before (nbf) claims to account for clock skew, in seconds.
 	//  Defaults to 60 seconds if set to 0 and can be disabled if set to -1. Only applicable with "jwt" roles.
 	// +optional
-	NotBeforeLeeway *int `json:"not_before_leeway,omitempty"`
+	NotBeforeLeeway *int `json:"notBeforeLeeway,omitempty"`
 
 	// Log received OIDC tokens and claims when debug-level logging is active. Not recommended in production
 	// since sensitive information may be present in OIDC responses.
 	// +optional
-	VerboseOIDCLogging *bool `json:"verbose_oidc_logging,omitempty"`
+	VerboseOIDCLogging *bool `json:"verboseOIDCLogging,omitempty"`
 
 	// Specifies the allowable elapsed time in seconds since the last time the user was actively
 	// authenticated with the OIDC provider.
 	// +optional
-	MaxAge *bool `json:"max_age,omitempty"`
+	MaxAge *bool `json:"maxAge,omitempty"`
 }
 
 // JwtObservation are the observable fields of a Jwt.
