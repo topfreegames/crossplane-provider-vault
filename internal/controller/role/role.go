@@ -22,11 +22,10 @@ package role
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"log"
 
 	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
+	"github.com/davecgh/go-spew/spew"
 	"github.com/hashicorp/vault/api"
 	"github.com/pkg/errors"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -58,6 +57,15 @@ const (
 	errUpdate            = "cannot update secret backend role"
 	errDelete            = "cannot delete secret backend role"
 	errRead              = "cannot read secret backend role"
+
+	// Validation Errors
+	errValidationMessage  = "validation error for AWS Secret Backend Role"
+	errUnkownCredType     = "credential_type must be one of iam_user, assumed_role, or federation_token"
+	errMinRequirements    = "at least one of: `policy_document`, `policy_arns`, `role_arns` or `iam_groups` must be set"
+	errPermissionBoundary = "permissions_boundary_arn is only valid when credential_type is iam_user"
+	errUserPath           = "user_path is only valid when credential_type is iam_user"
+	errMaxTTL             = "max_sts_ttl is only valid when credential_type is assumed_role or federation_token"
+	errDefaultSts         = "default_sts_ttl is only valid when credential_type is assumed_role or federation_token"
 )
 
 // A NoOpService does nothing.
@@ -146,15 +154,24 @@ func (c *external) Observe(ctx context.Context, mg resource.Managed) (managed.Ex
 
 	path := authBackend + "/roles/" + name
 
-	c.logger.Debug("[DEBUG] Reading role from %q", path)
+	// c.logger.Debug("Reading role from %q", path)
+
+	print(path)
 	secret, err := c.client.Logical().Read(path)
 	if err != nil {
 		return managed.ExternalObservation{}, errors.Wrap(err, errRead)
 	}
-	log.Printf("[DEBUG] Read role from %q", path)
+	// c.logger.Debug("Read role from %q", path)
 
 	exists := err == nil && secret != nil
-	upToDate := role.Spec.ForProvider.Backend == secret.Data["backend"]
+
+	spew.Dump(secret)
+	spew.Dump(role)
+
+	upToDate := false
+	if exists {
+		upToDate = role.Spec.ForProvider.Backend == secret.Data["backend"]
+	}
 
 	if exists && upToDate {
 		role.SetConditions(xpv1.Available())
@@ -186,7 +203,10 @@ func (c *external) Create(ctx context.Context, mg resource.Managed) (managed.Ext
 
 	_, err := c.writeRole(role)
 	if err != nil {
-		return managed.ExternalCreation{}, errors.Wrap(err, errCreation)
+		return managed.ExternalCreation{
+			ExternalNameAssigned: false,
+			ConnectionDetails:    nil,
+		}, errors.Wrap(err, errCreation)
 	}
 
 	return managed.ExternalCreation{
@@ -249,65 +269,58 @@ func validate(role *v1alpha1.Role) error {
 	maxStsTTL := role.Spec.ForProvider.MaxStsTTL
 
 	if credentialType != "iam_user" && credentialType != "assumed_role" && credentialType != "federation_token" {
-		return fmt.Errorf("must be one of iam_user, assumed_role, or federation_token")
+		return errors.New(errUnkownCredType)
 	}
 
 	if policyDocument == "" && len(policiesArn) == 0 && len(iamRolesArn) == 0 && len(iamGroups) == 0 {
-		return fmt.Errorf("at least one of: `policy_document`, `policy_arns`, `role_arns` or `iam_groups` must be set")
+		return errors.New(errMinRequirements)
 	}
 
 	if credentialType != "iam_user" {
 		if permissionsBoundaryArn != "" {
-			return fmt.Errorf("permissions_boundary_arn is only valid when credential_type is iam_user")
+			return errors.New(errPermissionBoundary)
 		}
 		if userPath != "" {
-			return fmt.Errorf("user_path is only valid when credential_type is iam_user")
+			return errors.New(errUserPath)
 		}
 	}
 
 	if credentialType != "assumed_role" && credentialType != "federation_token" {
 		if maxStsTTL > 0 {
-			return fmt.Errorf("max_sts_ttl is only valid when credential_type is assumed_role or federation_token")
+			return errors.New(errMaxTTL)
 		}
 		if defaultStsTTL > 0 {
-			return fmt.Errorf("default_sts_ttl is only valid when credential_type is assumed_role or federation_token")
+			return errors.New(errDefaultSts)
 		}
 	}
 
 	return nil
 }
 
-func decodeData(role *v1alpha1.Role) (map[string]interface{}, error) {
-	d := map[string]interface{}{}
-	jsonObj, _ := json.Marshal(role.Spec.ForProvider)
-	json.Unmarshal(jsonObj, &d)
-	d["role_name"] = role.ObjectMeta.Name
-	return d, nil
-}
-
 // write role validate the role and create it
 func (c *external) writeRole(role *v1alpha1.Role) (*api.Secret, error) {
 	validErr := validate(role)
 	if validErr != nil {
-		return nil, fmt.Errorf("validation error for AWS Secret Backend Role: %w", validErr)
+		return nil, validErr
+		// errors.Wrap(validErr, errValidationMessage)
 	}
 
-	data, err := decodeData(role)
+	data, err := crossplaneToVaultFunc(role)
 	if err != nil {
-		return nil, fmt.Errorf("error decoding jwt role spec: %w", err)
+		return nil, fmt.Errorf("error decoding role spec: %w", err)
 	}
 
 	name := role.Name
 	backend := role.Spec.ForProvider.Backend
 	path := backend + "/roles/" + name
 
-	// c.logger.Debug("Creating/Updating role %q on AWS backend %q", name, backend)
+	c.logger.Debug("Creating/Updating role %q on AWS backend %q", name, backend)
 	secret, err := c.client.Logical().Write(path, data)
 	if err != nil {
-		// c.logger.Debug(fmt.Sprintf("error creating role %q for backend %q: %s", name, backend, err))
+		c.logger.Debug(fmt.Sprintf("error creating role %q for backend %q: %s", name, backend, err))
 		return nil, errors.Wrap(err, errCreation)
 	}
-	// c.logger.Debug("Created/Updated role %q on AWS backend %q", name, backend)
+	c.logger.Debug("Created/Updated role %q on AWS backend %q", name, backend)
 
 	return secret, nil
 }

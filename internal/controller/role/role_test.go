@@ -21,13 +21,14 @@ import (
 	"testing"
 
 	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
-	"github.com/crossplane/crossplane-runtime/pkg/errors"
+	"github.com/crossplane/crossplane-runtime/pkg/logging"
 	"github.com/crossplane/crossplane-runtime/pkg/reconciler/managed"
 	"github.com/crossplane/crossplane-runtime/pkg/resource"
 	"github.com/crossplane/crossplane-runtime/pkg/test"
 	"github.com/golang/mock/gomock"
 	"github.com/google/go-cmp/cmp"
 	"github.com/hashicorp/vault/api"
+	"github.com/pkg/errors"
 	"github.com/topfreegames/crossplane-provider-vault/apis/aws/v1alpha1"
 	"github.com/topfreegames/crossplane-provider-vault/internal/clients"
 	"github.com/topfreegames/crossplane-provider-vault/internal/clients/fake"
@@ -44,6 +45,14 @@ import (
 
 func getTestError() error {
 	return errors.New("test error")
+}
+
+func getTestDontExistError() error {
+	return errors.New("role does not exist")
+}
+
+func getTestUnknownCredTypeError() error {
+	return errors.New(errUnkownCredType)
 }
 
 func TestCreate(t *testing.T) {
@@ -73,7 +82,7 @@ func TestCreate(t *testing.T) {
 				clientBuilder: func(t *testing.T) clients.VaultClient {
 
 					role := getTestRole()
-					data, _ := decodeData(role)
+					data, _ := crossplaneToVaultFunc(role)
 
 					name := role.Name
 					backend := role.Spec.ForProvider.Backend
@@ -92,8 +101,6 @@ func TestCreate(t *testing.T) {
 						Auth:          &api.SecretAuth{},
 						WrapInfo:      &api.SecretWrapInfo{},
 					}
-
-					// logicalMock.EXPECT().Write(path, mock.MatchedBy(func(role *v1alpha1.Role) bool { return role.Name == "roletest" })).Return(secret, nil)
 
 					logicalMock.EXPECT().Write(path, data).Return(secret, nil)
 
@@ -118,8 +125,81 @@ func TestCreate(t *testing.T) {
 			fields: fields{
 				clientBuilder: func(t *testing.T) clients.VaultClient {
 
-					role := getTestInvalidRole()
-					data, _ := decodeData(role)
+					invRole := getTestInvalidRole()
+					invData, _ := crossplaneToVaultFunc(invRole)
+
+					name := invRole.Name
+					backend := invRole.Spec.ForProvider.Backend
+					path := backend + "/roles/" + name
+
+					ctrl2 := gomock.NewController(t)
+					logicalMock := fake.NewMockVaultLogicalClient(ctrl2)
+
+					logicalMock.EXPECT().Write(path, invData).Return(nil, nil)
+
+					clientMock2 := fake.NewMockVaultClient(ctrl2)
+					clientMock2.EXPECT().Logical().Return(logicalMock)
+					return clientMock2
+				},
+			},
+			args: args{
+				ctx: context.TODO(),
+				mg:  getTestInvalidRole(),
+			},
+			want: want{
+				o: managed.ExternalCreation{
+					ExternalNameAssigned: false,
+					ConnectionDetails:    nil,
+				},
+				err: errors.Wrap(errors.New(errUnkownCredType), errCreation),
+			},
+		},
+	}
+
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			e := &external{
+				client: tc.fields.clientBuilder(t),
+				logger: logging.NewNopLogger(),
+			}
+			got, err := e.Create(tc.args.ctx, tc.args.mg)
+			if diff := cmp.Diff(tc.want.err, err, test.EquateErrors()); diff != "" {
+				t.Errorf("\n%s\ne.Create(...): -want error, +got error:\n%s\n", tc.reason, diff)
+			}
+			if diff := cmp.Diff(tc.want.o, got); diff != "" {
+				t.Errorf("\n%s\ne.Create(...): -want, +got:\n%s\n", tc.reason, diff)
+			}
+		})
+	}
+}
+
+func TestObserve(t *testing.T) {
+	type fields struct {
+		clientBuilder func(t *testing.T) clients.VaultClient
+	}
+
+	type args struct {
+		ctx context.Context
+		mg  resource.Managed
+	}
+
+	type want struct {
+		o   managed.ExternalObservation
+		err error
+	}
+
+	cases := map[string]struct {
+		reason string
+		fields fields
+		args   args
+		want   want
+	}{
+		"doesn't exist": {
+			reason: "role must not exist",
+			fields: fields{
+				clientBuilder: func(t *testing.T) clients.VaultClient {
+
+					role := getTestRole()
 
 					name := role.Name
 					backend := role.Spec.ForProvider.Backend
@@ -128,9 +208,7 @@ func TestCreate(t *testing.T) {
 					ctrl := gomock.NewController(t)
 					logicalMock := fake.NewMockVaultLogicalClient(ctrl)
 
-					// logicalMock.EXPECT().Write(path, mock.MatchedBy(func(role *v1alpha1.Role) bool { return role.Name == "roletest" })).Return(secret, nil)
-
-					logicalMock.EXPECT().Write(path, data).Return(nil, getTestError())
+					logicalMock.EXPECT().Read(path).Return(&api.Secret{}, getTestDontExistError())
 
 					clientMock := fake.NewMockVaultClient(ctrl)
 					clientMock.EXPECT().Logical().Return(logicalMock)
@@ -142,8 +220,61 @@ func TestCreate(t *testing.T) {
 				mg:  getTestRole(),
 			},
 			want: want{
-				o:   managed.ExternalCreation{},
-				err: errors.Wrap(getTestError(), errCreation),
+				o: managed.ExternalObservation{
+					ResourceExists:          false,
+					ResourceUpToDate:        false,
+					ResourceLateInitialized: false,
+					ConnectionDetails:       map[string][]byte{},
+				},
+				err: nil,
+			},
+		},
+		"exist but outdated": {
+			reason: "role exists but its outdated",
+			fields: fields{
+				clientBuilder: func(t *testing.T) clients.VaultClient {
+
+					role := getTestRole()
+
+					name := role.Name
+					backend := role.Spec.ForProvider.Backend
+					path := backend + "/roles/" + name
+
+					secret := &api.Secret{
+						RequestID:     "",
+						LeaseID:       "",
+						LeaseDuration: 0,
+						Renewable:     false,
+						Data: map[string]interface{}{
+							"test": "test",
+						},
+						Warnings: []string{},
+						Auth:     &api.SecretAuth{},
+						WrapInfo: &api.SecretWrapInfo{},
+					}
+
+					ctrl := gomock.NewController(t)
+					logicalMock := fake.NewMockVaultLogicalClient(ctrl)
+
+					logicalMock.EXPECT().Read(path).Return(secret, nil)
+
+					clientMock := fake.NewMockVaultClient(ctrl)
+					clientMock.EXPECT().Logical().Return(logicalMock)
+					return clientMock
+				},
+			},
+			args: args{
+				ctx: context.TODO(),
+				mg:  getTestRole(),
+			},
+			want: want{
+				o: managed.ExternalObservation{
+					ResourceExists:          true,
+					ResourceUpToDate:        false,
+					ResourceLateInitialized: false,
+					ConnectionDetails:       map[string][]byte{},
+				},
+				err: nil,
 			},
 		},
 	}
@@ -153,12 +284,12 @@ func TestCreate(t *testing.T) {
 			e := &external{
 				client: tc.fields.clientBuilder(t),
 			}
-			got, err := e.Create(tc.args.ctx, tc.args.mg)
+			got, err := e.Observe(tc.args.ctx, tc.args.mg)
 			if diff := cmp.Diff(tc.want.err, err, test.EquateErrors()); diff != "" {
-				t.Errorf("\n%s\ne.Create(...): -want error, +got error:\n%s\n", tc.reason, diff)
+				t.Errorf("\n%s\ne.Observe(...): -want error, +got error:\n%s\n", tc.reason, diff)
 			}
 			if diff := cmp.Diff(tc.want.o, got); diff != "" {
-				t.Errorf("\n%s\ne.Create(...): -want, +got:\n%s\n", tc.reason, diff)
+				t.Errorf("\n%s\ne.Observe(...): -want, +got:\n%s\n", tc.reason, diff)
 			}
 		})
 	}
@@ -219,7 +350,7 @@ func getTestInvalidRole(f ...func(role *v1alpha1.Role) *v1alpha1.Role) *v1alpha1
 			APIVersion: v1alpha1.RoleKindAPIVersion,
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name: "roletest",
+			Name: "invroletest",
 		},
 		Spec: v1alpha1.RoleSpec{
 			ResourceSpec: xpv1.ResourceSpec{
@@ -227,7 +358,7 @@ func getTestInvalidRole(f ...func(role *v1alpha1.Role) *v1alpha1.Role) *v1alpha1
 			},
 			ForProvider: v1alpha1.RoleParameters{
 				Backend:        "aws",
-				CredentialType: "assume_role",
+				CredentialType: "invalid", // Error
 				IamRolesArn:    []string{"arn:aws:iam::123456789012:role/roletest"},
 				// PoliciesArn:           []string{}, // We are using PolicyDocument
 				PolicyDocument: `{

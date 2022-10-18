@@ -38,7 +38,7 @@ type RoleParameters struct {
 
 	// IamRolesArn - (Optional) Specifies the ARNs of the AWS roles this Vault role is allowed to assume. Required when credential_type is assumed_role and prohibited otherwise.
 	// +optional
-	IamRolesArn []string `json:"iamRoles,omitempty"`
+	IamRolesArn []string `json:"iamRolesArn,omitempty"`
 
 	// PoliciesArn - (Optional) Specifies a list of AWS managed policy ARNs. The behavior depends on the credential type. With iam_user, the policies will be attached to IAM users when they are requested. With assumed_role and federation_token, the policy ARNs will act as a filter on what the credentials can do, similar to policy_document. When credential_type is iam_user or federation_token, at least one of policy_document or policy_arns must be specified.
 	// +optional
