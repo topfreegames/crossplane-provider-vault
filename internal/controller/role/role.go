@@ -25,7 +25,6 @@ import (
 	"fmt"
 
 	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
-	"github.com/davecgh/go-spew/spew"
 	"github.com/hashicorp/vault/api"
 	"github.com/pkg/errors"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -165,9 +164,6 @@ func (c *external) Observe(ctx context.Context, mg resource.Managed) (managed.Ex
 
 	exists := err == nil && secret != nil
 
-	spew.Dump(secret)
-	spew.Dump(role)
-
 	upToDate := false
 	if exists {
 		upToDate = role.Spec.ForProvider.Backend == secret.Data["backend"]
@@ -205,7 +201,7 @@ func (c *external) Create(ctx context.Context, mg resource.Managed) (managed.Ext
 	if err != nil {
 		return managed.ExternalCreation{
 			ExternalNameAssigned: false,
-			ConnectionDetails:    nil,
+			ConnectionDetails:    managed.ConnectionDetails{},
 		}, errors.Wrap(err, errCreation)
 	}
 

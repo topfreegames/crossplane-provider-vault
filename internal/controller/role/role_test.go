@@ -43,16 +43,8 @@ import (
 // https://github.com/golang/go/wiki/TestComments
 // https://github.com/crossplane/crossplane/blob/master/CONTRIBUTING.md#contributing-code
 
-func getTestError() error {
-	return errors.New("test error")
-}
-
 func getTestDontExistError() error {
 	return errors.New("role does not exist")
-}
-
-func getTestUnknownCredTypeError() error {
-	return errors.New(errUnkownCredType)
 }
 
 func TestCreate(t *testing.T) {
@@ -125,20 +117,20 @@ func TestCreate(t *testing.T) {
 			fields: fields{
 				clientBuilder: func(t *testing.T) clients.VaultClient {
 
-					invRole := getTestInvalidRole()
-					invData, _ := crossplaneToVaultFunc(invRole)
+					// invRole := getTestInvalidRole()
+					// invData, _ := crossplaneToVaultFunc(invRole)
 
-					name := invRole.Name
-					backend := invRole.Spec.ForProvider.Backend
-					path := backend + "/roles/" + name
+					// name := invRole.Name
+					// backend := invRole.Spec.ForProvider.Backend
+					// path := backend + "/roles/" + name
 
 					ctrl2 := gomock.NewController(t)
-					logicalMock := fake.NewMockVaultLogicalClient(ctrl2)
+					// logicalMock2 := fake.NewMockVaultLogicalClient(ctrl2)
 
-					logicalMock.EXPECT().Write(path, invData).Return(nil, nil)
+					// logicalMock2.EXPECT().Write(path, invData).Return(nil, nil)
 
 					clientMock2 := fake.NewMockVaultClient(ctrl2)
-					clientMock2.EXPECT().Logical().Return(logicalMock)
+					// clientMock2.EXPECT().Logical().Return(logicalMock2)
 					return clientMock2
 				},
 			},
@@ -149,7 +141,7 @@ func TestCreate(t *testing.T) {
 			want: want{
 				o: managed.ExternalCreation{
 					ExternalNameAssigned: false,
-					ConnectionDetails:    nil,
+					ConnectionDetails:    managed.ConnectionDetails{},
 				},
 				err: errors.Wrap(errors.New(errUnkownCredType), errCreation),
 			},
@@ -224,7 +216,7 @@ func TestObserve(t *testing.T) {
 					ResourceExists:          false,
 					ResourceUpToDate:        false,
 					ResourceLateInitialized: false,
-					ConnectionDetails:       map[string][]byte{},
+					ConnectionDetails:       managed.ConnectionDetails{},
 				},
 				err: nil,
 			},
