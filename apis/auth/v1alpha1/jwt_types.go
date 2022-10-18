@@ -59,7 +59,7 @@ type JwtParameters struct {
 	// f set, a map of claims to values to match against. A claim's value must be a string,
 	//  which may contain one value or multiple comma-separated values, e.g. "red" or "red,green,blue"
 	// +optional
-	BoundClaims map[string]string `json:"boundClaims,omitempty"`
+	BoundClaims map[string]*string `json:"boundClaims,omitempty"`
 
 	// How to interpret values in the claims/values map (bound_claims): can be either string (exact match) or glob (wildcard match). Requires Vault 1.4.0 or above.
 	// +optional
@@ -67,7 +67,7 @@ type JwtParameters struct {
 
 	// If set, a map of claims (keys) to be copied to specified metadata fields (values).
 	// +optional
-	ClaimMappings map[string]string `json:"claimMappings,omitempty"`
+	ClaimMappings map[string]*string `json:"claimMappings,omitempty"`
 
 	// If set, a list of OIDC scopes to be used with an OIDC role. The standard scope "openid" is
 	//  automatically included and need not be specified.

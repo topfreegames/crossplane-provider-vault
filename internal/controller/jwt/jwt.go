@@ -18,7 +18,6 @@ package jwt
 
 import (
 	"context"
-	"fmt"
 	"reflect"
 	"strings"
 
@@ -232,48 +231,64 @@ func decodeData(data *v1alpha1.Jwt) map[string]interface{} {
 
 	spec := data.Spec.ForProvider
 	if spec.Namespace != nil {
-		d["namespace"] = spec.Namespace
+		d["namespace"] = *spec.Namespace
 	}
 
 	if spec.RoleType != nil {
-		d["role_type"] = spec.RoleType
+		d["role_type"] = *spec.RoleType
 	}
 
 	if spec.BoundAudiences != nil {
-		d["bound_audiences"] = spec.BoundAudiences
+		boundAudiences := make([]interface{}, len(spec.BoundAudiences))
+		for i := range spec.BoundAudiences {
+			boundAudiences[i] = *spec.BoundAudiences[i]
+		}
+		d["bound_audiences"] = boundAudiences
 	}
 
-	d["user_claim"] = spec.UserClaim
+	d["user_claim"] = *spec.UserClaim
 
 	if spec.UserClaimJsonPointer != nil {
-		d["user_claim_json_pointer"] = spec.UserClaimJsonPointer
+		d["user_claim_json_pointer"] = *spec.UserClaimJsonPointer
 	}
 
 	if spec.BoundSubject != nil {
-		d["bound_subject"] = spec.BoundSubject
+		d["bound_subject"] = *spec.BoundSubject
 	}
 
 	if spec.BoundClaims != nil {
-		d["bound_claims"] = spec.BoundClaims
+		boundClaims := make(map[string]interface{}, len(spec.BoundClaims))
+		for key, value := range spec.BoundClaims {
+			boundClaims[key] = *value
+		}
+		d["bound_claims"] = boundClaims
 	}
 
 	if spec.BoundClaimsType != nil {
-		d["bound_claims_type"] = spec.BoundClaimsType
+		d["bound_claims_type"] = *spec.BoundClaimsType
 	}
 
 	if spec.ClaimMappings != nil {
-		d["claim_mappings"] = spec.ClaimMappings
+		claimMappings := make(map[string]interface{}, len(spec.BoundAudiences))
+		for key, value := range spec.ClaimMappings {
+			claimMappings[key] = *value
+		}
+		d["claim_mappings"] = claimMappings
 	}
 
 	if spec.OIDCScopes != nil {
-		d["oidc_scopes"] = spec.OIDCScopes
+		oidcScopes := make([]interface{}, len(spec.OIDCScopes))
+		for i := range spec.OIDCScopes {
+			oidcScopes[i] = *spec.OIDCScopes[i]
+		}
+		d["oidc_scopes"] = oidcScopes
 	}
 
 	if spec.GroupsClaim != nil {
-		d["groups_claim"] = spec.GroupsClaim
+		d["groups_claim"] = *spec.GroupsClaim
 	}
 	if spec.Backend != nil {
-		d["backend"] = spec.Backend
+		d["backend"] = *spec.Backend
 	}
 
 	if spec.AllowedRedirectURIs != nil {
@@ -281,22 +296,22 @@ func decodeData(data *v1alpha1.Jwt) map[string]interface{} {
 	}
 
 	if spec.ClockSkewLeeway != nil {
-		d["clock_skew_leeway"] = spec.ClockSkewLeeway
+		d["clock_skew_leeway"] = *spec.ClockSkewLeeway
 	}
 
 	if spec.ExpirationLeeway != nil {
-		d["expiration_leeway"] = spec.ExpirationLeeway
+		d["expiration_leeway"] = *spec.ExpirationLeeway
 	}
 
 	if spec.NotBeforeLeeway != nil {
-		d["not_before_leeway"] = spec.NotBeforeLeeway
+		d["not_before_leeway"] = *spec.NotBeforeLeeway
 	}
 
 	if spec.VerboseOIDCLogging != nil {
-		d["verbose_oidc_logging"] = spec.VerboseOIDCLogging
+		d["verbose_oidc_logging"] = *spec.VerboseOIDCLogging
 	}
 	if spec.MaxAge != nil {
-		d["max_age"] = spec.MaxAge
+		d["max_age"] = *spec.MaxAge
 	}
 
 	return d
@@ -306,35 +321,21 @@ func jwtAuthBackendRolePath(backend, role string) string {
 	return "auth/" + strings.Trim(backend, "/") + "/role/" + strings.Trim(role, "/")
 }
 
-// TODO: Ensure the casting before comparing types (probably this will be done field by field)
 func isUpToDate(logger logging.Logger, crossplaneData, vaultData map[string]interface{}) bool {
-	logger.Debug("##############################")
-	logger.Debug(fmt.Sprintf("crossplane %+v", crossplaneData))
-	logger.Debug(fmt.Sprintf("vault %+v", vaultData))
-
 	for key, value := range crossplaneData {
-
 		if key == "role_name" || key == "backend" {
 			continue
 		}
 
 		vaultValue, ok := vaultData[key]
 		if !ok {
-			logger.Debug("##############################")
-			logger.Debug("FALSE")
-			logger.Debug(fmt.Sprintf("crossplane %s: %+v", key, value))
 			return false
 		}
 
-		if key == "bound_claims" || key == "claim_mappings" || key == "oidc_scopes" {
-			if !reflect.DeepEqual(&value, vaultValue) {
-				logger.Debug("##############################")
-				logger.Debug("FALSE")
-				logger.Debug(fmt.Sprintf("VAULT %s: %+v", key, vaultValue))
-				logger.Debug(fmt.Sprintf("crossplane %s: %+v", key, value))
-				return false
-			}
+		if !reflect.DeepEqual(value, vaultValue) {
+			return false
 		}
+
 	}
 
 	return true

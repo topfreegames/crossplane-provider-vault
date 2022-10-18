@@ -140,9 +140,17 @@ func (in *JwtParameters) DeepCopyInto(out *JwtParameters) {
 	}
 	if in.BoundClaims != nil {
 		in, out := &in.BoundClaims, &out.BoundClaims
-		*out = make(map[string]string, len(*in))
+		*out = make(map[string]*string, len(*in))
 		for key, val := range *in {
-			(*out)[key] = val
+			var outVal *string
+			if val == nil {
+				(*out)[key] = nil
+			} else {
+				in, out := &val, &outVal
+				*out = new(string)
+				**out = **in
+			}
+			(*out)[key] = outVal
 		}
 	}
 	if in.BoundClaimsType != nil {
@@ -152,9 +160,17 @@ func (in *JwtParameters) DeepCopyInto(out *JwtParameters) {
 	}
 	if in.ClaimMappings != nil {
 		in, out := &in.ClaimMappings, &out.ClaimMappings
-		*out = make(map[string]string, len(*in))
+		*out = make(map[string]*string, len(*in))
 		for key, val := range *in {
-			(*out)[key] = val
+			var outVal *string
+			if val == nil {
+				(*out)[key] = nil
+			} else {
+				in, out := &val, &outVal
+				*out = new(string)
+				**out = **in
+			}
+			(*out)[key] = outVal
 		}
 	}
 	if in.OIDCScopes != nil {
