@@ -50,7 +50,7 @@ type JwtParameters struct {
 	// Specifies if the user_claim value uses JSON pointer syntax for referencing claims.
 	// By default, the user_claim value will not use JSON pointer. Requires Vault 1.11+.
 	// +optional
-	UserClaimJsonPointer *string `json:"userClaimJsonPointer,omitempty"`
+	UserClaimJsonPointer *bool `json:"userClaimJsonPointer,omitempty"`
 
 	// If set, requires that the sub claim matches this value.
 	// +optional
@@ -72,7 +72,7 @@ type JwtParameters struct {
 	// If set, a list of OIDC scopes to be used with an OIDC role. The standard scope "openid" is
 	//  automatically included and need not be specified.
 	// +optional
-	OIDCScopes map[string]string `json:"oidcScopes,omitempty"`
+	OIDCScopes []*string `json:"oidcScopes,omitempty"`
 
 	// The claim to use to uniquely identify the set of groups to which the user belongs;
 	// this will be used as the names for the Identity group aliases created due to a successful login.
@@ -111,7 +111,7 @@ type JwtParameters struct {
 	// Specifies the allowable elapsed time in seconds since the last time the user was actively
 	// authenticated with the OIDC provider.
 	// +optional
-	MaxAge *bool `json:"maxAge,omitempty"`
+	MaxAge *int `json:"maxAge,omitempty"`
 }
 
 // JwtObservation are the observable fields of a Jwt.

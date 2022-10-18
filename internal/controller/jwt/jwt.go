@@ -226,7 +226,6 @@ func (c *external) Delete(ctx context.Context, mg resource.Managed) error {
 	return nil
 }
 
-// TODO: Do not use the json tags to build the map (the return should be snakecase)
 func decodeData(data *v1alpha1.Jwt) map[string]interface{} {
 	d := map[string]interface{}{}
 	d["role_name"] = data.ObjectMeta.Name

@@ -130,7 +130,7 @@ func (in *JwtParameters) DeepCopyInto(out *JwtParameters) {
 	}
 	if in.UserClaimJsonPointer != nil {
 		in, out := &in.UserClaimJsonPointer, &out.UserClaimJsonPointer
-		*out = new(string)
+		*out = new(bool)
 		**out = **in
 	}
 	if in.BoundSubject != nil {
@@ -159,9 +159,13 @@ func (in *JwtParameters) DeepCopyInto(out *JwtParameters) {
 	}
 	if in.OIDCScopes != nil {
 		in, out := &in.OIDCScopes, &out.OIDCScopes
-		*out = make(map[string]string, len(*in))
-		for key, val := range *in {
-			(*out)[key] = val
+		*out = make([]*string, len(*in))
+		for i := range *in {
+			if (*in)[i] != nil {
+				in, out := &(*in)[i], &(*out)[i]
+				*out = new(string)
+				**out = **in
+			}
 		}
 	}
 	if in.GroupsClaim != nil {
@@ -207,7 +211,7 @@ func (in *JwtParameters) DeepCopyInto(out *JwtParameters) {
 	}
 	if in.MaxAge != nil {
 		in, out := &in.MaxAge, &out.MaxAge
-		*out = new(bool)
+		*out = new(int)
 		**out = **in
 	}
 }

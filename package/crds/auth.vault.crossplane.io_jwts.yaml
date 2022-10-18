@@ -126,7 +126,7 @@ spec:
                     description: Specifies the allowable elapsed time in seconds since
                       the last time the user was actively authenticated with the OIDC
                       provider.
-                    type: boolean
+                    type: integer
                   namespace:
                     description: The namespace to provision the resource in. The value
                       should not contain leading or trailing forward slashes. The
@@ -139,12 +139,12 @@ spec:
                       with "jwt" roles.
                     type: integer
                   oidcScopes:
-                    additionalProperties:
-                      type: string
                     description: If set, a list of OIDC scopes to be used with an
                       OIDC role. The standard scope "openid" is automatically included
                       and need not be specified.
-                    type: object
+                    items:
+                      type: string
+                    type: array
                   type:
                     description: Type of role, either "oidc" (default) or "jwt"
                     type: string
@@ -157,7 +157,7 @@ spec:
                     description: Specifies if the user_claim value uses JSON pointer
                       syntax for referencing claims. By default, the user_claim value
                       will not use JSON pointer. Requires Vault 1.11+.
-                    type: string
+                    type: boolean
                   verboseOIDCLogging:
                     description: Log received OIDC tokens and claims when debug-level
                       logging is active. Not recommended in production since sensitive
