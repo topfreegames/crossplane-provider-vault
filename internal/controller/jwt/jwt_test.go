@@ -20,11 +20,19 @@ import (
 	"context"
 	"testing"
 
-	"github.com/google/go-cmp/cmp"
-
+	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
 	"github.com/crossplane/crossplane-runtime/pkg/reconciler/managed"
 	"github.com/crossplane/crossplane-runtime/pkg/resource"
 	"github.com/crossplane/crossplane-runtime/pkg/test"
+	"github.com/golang/mock/gomock"
+	"github.com/google/go-cmp/cmp"
+	"github.com/hashicorp/vault/api"
+	"github.com/pkg/errors"
+	"github.com/topfreegames/crossplane-provider-vault/apis/auth/v1alpha1"
+	"github.com/topfreegames/crossplane-provider-vault/internal/clients"
+	"github.com/topfreegames/crossplane-provider-vault/internal/clients/fake"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/utils/pointer"
 )
 
 // Unlike many Kubernetes projects Crossplane does not use third party testing
@@ -37,7 +45,7 @@ import (
 
 func TestObserve(t *testing.T) {
 	type fields struct {
-		service interface{}
+		clientBuilder func(t *testing.T) clients.VaultClient
 	}
 
 	type args struct {
@@ -56,12 +64,79 @@ func TestObserve(t *testing.T) {
 		args   args
 		want   want
 	}{
-		// TODO: Add test cases.
+		"doesn't exist": {
+			reason: "JWT/OIDC role should not exist",
+			fields: fields{
+				clientBuilder: func(t *testing.T) clients.VaultClient {
+					jwtRole := &v1alpha1.Jwt{
+						TypeMeta: metav1.TypeMeta{
+							Kind:       v1alpha1.JwtKind,
+							APIVersion: v1alpha1.JwtKindAPIVersion,
+						},
+						ObjectMeta: metav1.ObjectMeta{
+							Name: "roleTest",
+						},
+						Spec: v1alpha1.JwtSpec{
+							ResourceSpec: xpv1.ResourceSpec{
+								DeletionPolicy: "Delete",
+							},
+							ForProvider: v1alpha1.JwtParameters{
+								Backend:  pointer.String("gitlab"),
+								RoleType: pointer.String("jwt"),
+							},
+						},
+					}
+
+					name := jwtRole.Name
+					path := jwtAuthBackendRolePath(*jwtRole.Spec.ForProvider.Backend, name)
+
+					ctrl := gomock.NewController(t)
+					logicalMock := fake.NewMockVaultLogicalClient(ctrl)
+
+					logicalMock.EXPECT().Read(path).Return(&api.Secret{}, errors.New("role does not exist"))
+
+					clientMock := fake.NewMockVaultClient(ctrl)
+					clientMock.EXPECT().Logical().Return(logicalMock)
+
+					return clientMock
+				},
+			},
+			args: args{
+				ctx: context.TODO(),
+				mg: &v1alpha1.Jwt{
+					TypeMeta: metav1.TypeMeta{
+						Kind:       v1alpha1.JwtKind,
+						APIVersion: v1alpha1.JwtKindAPIVersion,
+					},
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "roleTest",
+					},
+					Spec: v1alpha1.JwtSpec{
+						ResourceSpec: xpv1.ResourceSpec{
+							DeletionPolicy: "Delete",
+						},
+						ForProvider: v1alpha1.JwtParameters{
+							Backend:  pointer.String("gitlab"),
+							RoleType: pointer.String("jwt"),
+						},
+					},
+				},
+			},
+			want: want{
+				o: managed.ExternalObservation{
+					ResourceExists:          false,
+					ResourceUpToDate:        true,
+					ResourceLateInitialized: false,
+					ConnectionDetails:       managed.ConnectionDetails{},
+				},
+				err: nil,
+			},
+		},
 	}
 
 	for name, tc := range cases {
 		t.Run(name, func(t *testing.T) {
-			e := external{service: tc.fields.service}
+			e := external{client: tc.fields.clientBuilder(t)}
 			got, err := e.Observe(tc.args.ctx, tc.args.mg)
 			if diff := cmp.Diff(tc.want.err, err, test.EquateErrors()); diff != "" {
 				t.Errorf("\n%s\ne.Observe(...): -want error, +got error:\n%s\n", tc.reason, diff)
