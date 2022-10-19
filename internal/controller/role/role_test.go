@@ -47,6 +47,10 @@ func getTestDontExistError() error {
 	return errors.New("role does not exist")
 }
 
+func getTestDeleteError() error {
+	return errors.New("failed to delete a role")
+}
+
 func TestCreate(t *testing.T) {
 	type fields struct {
 		clientBuilder func(t *testing.T) clients.VaultClient
@@ -269,6 +273,198 @@ func TestObserve(t *testing.T) {
 			}
 			if diff := cmp.Diff(tc.want.o, got); diff != "" {
 				t.Errorf("\n%s\ne.Observe(...): -want, +got:\n%s\n", tc.reason, diff)
+			}
+		})
+	}
+}
+
+func TestUpdate(t *testing.T) {
+	type fields struct {
+		clientBuilder func(t *testing.T) clients.VaultClient
+	}
+
+	type args struct {
+		ctx context.Context
+		mg  resource.Managed
+	}
+
+	type want struct {
+		o   managed.ExternalUpdate
+		err error
+	}
+
+	cases := map[string]struct {
+		reason string
+		fields fields
+		args   args
+		want   want
+	}{
+		"successfully update": {
+			reason: "role must be updated",
+			fields: fields{
+				clientBuilder: func(t *testing.T) clients.VaultClient {
+
+					role := getTestRole()
+					_, data, _ := crossplaneToVaultFunc(role)
+
+					name := role.Name
+					backend := role.Spec.ForProvider.Backend
+					path := backend + "/roles/" + name
+
+					ctrl := gomock.NewController(t)
+					logicalMock := fake.NewMockVaultLogicalClient(ctrl)
+
+					secret := &api.Secret{
+						RequestID:     "",
+						LeaseID:       "",
+						LeaseDuration: 0,
+						Renewable:     false,
+						Data:          data,
+						Warnings:      []string{},
+						Auth:          &api.SecretAuth{},
+						WrapInfo:      &api.SecretWrapInfo{},
+					}
+
+					logicalMock.EXPECT().Write(path, data).Return(secret, nil)
+
+					clientMock := fake.NewMockVaultClient(ctrl)
+					clientMock.EXPECT().Logical().Return(logicalMock)
+					return clientMock
+				},
+			},
+			args: args{
+				ctx: context.TODO(),
+				mg:  getTestRole(),
+			},
+			want: want{
+				o: managed.ExternalUpdate{
+					ConnectionDetails: managed.ConnectionDetails{},
+				},
+				err: nil,
+			},
+		},
+	}
+
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			e := &external{
+				client: tc.fields.clientBuilder(t),
+				logger: logging.NewNopLogger(),
+			}
+			got, err := e.Update(tc.args.ctx, tc.args.mg)
+			if diff := cmp.Diff(tc.want.err, err, test.EquateErrors()); diff != "" {
+				t.Errorf("\n%s\ne.Update(...): -want error, +got error:\n%s\n", tc.reason, diff)
+			}
+			if diff := cmp.Diff(tc.want.o, got); diff != "" {
+				t.Errorf("\n%s\ne.Update(...): -want, +got:\n%s\n", tc.reason, diff)
+			}
+		})
+	}
+}
+
+func TestDelete(t *testing.T) {
+	type fields struct {
+		clientBuilder func(t *testing.T) clients.VaultClient
+	}
+
+	type args struct {
+		ctx context.Context
+		mg  resource.Managed
+	}
+
+	type want struct {
+		err error
+	}
+
+	cases := map[string]struct {
+		reason string
+		fields fields
+		args   args
+		want   want
+	}{
+		"successfully delete": {
+			reason: "role must be deleted",
+			fields: fields{
+				clientBuilder: func(t *testing.T) clients.VaultClient {
+
+					role := getTestRole()
+					_, data, _ := crossplaneToVaultFunc(role)
+
+					name := role.Name
+					backend := role.Spec.ForProvider.Backend
+					path := backend + "/roles/" + name
+
+					ctrl := gomock.NewController(t)
+					logicalMock := fake.NewMockVaultLogicalClient(ctrl)
+
+					secret := &api.Secret{
+						RequestID:     "",
+						LeaseID:       "",
+						LeaseDuration: 0,
+						Renewable:     false,
+						Data:          data,
+						Warnings:      []string{},
+						Auth:          &api.SecretAuth{},
+						WrapInfo:      &api.SecretWrapInfo{},
+					}
+
+					logicalMock.EXPECT().Delete(path).Return(secret, nil)
+
+					clientMock := fake.NewMockVaultClient(ctrl)
+					clientMock.EXPECT().Logical().Return(logicalMock)
+					return clientMock
+				},
+			},
+			args: args{
+				ctx: context.TODO(),
+				mg:  getTestRole(),
+			},
+			want: want{
+				err: nil,
+			},
+		},
+		"error deleting a role": {
+			reason: "unexpected error deleting a role",
+			fields: fields{
+				clientBuilder: func(t *testing.T) clients.VaultClient {
+
+					role := getTestRole()
+
+					name := role.Name
+					backend := role.Spec.ForProvider.Backend
+					path := backend + "/roles/" + name
+
+					ctrl := gomock.NewController(t)
+					logicalMock := fake.NewMockVaultLogicalClient(ctrl)
+
+					secret := &api.Secret{}
+
+					logicalMock.EXPECT().Delete(path).Return(secret, getTestDeleteError())
+
+					clientMock := fake.NewMockVaultClient(ctrl)
+					clientMock.EXPECT().Logical().Return(logicalMock)
+					return clientMock
+				},
+			},
+			args: args{
+				ctx: context.TODO(),
+				mg:  getTestRole(),
+			},
+			want: want{
+				err: errors.Wrap(getTestDeleteError(), errDelete),
+			},
+		},
+	}
+
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			e := &external{
+				client: tc.fields.clientBuilder(t),
+				logger: logging.NewNopLogger(),
+			}
+			err := e.Delete(tc.args.ctx, tc.args.mg)
+			if diff := cmp.Diff(tc.want.err, err, test.EquateErrors()); diff != "" {
+				t.Errorf("\n%s\ne.Delete(...): -want error, +got error:\n%s\n", tc.reason, diff)
 			}
 		})
 	}

@@ -150,7 +150,8 @@ func (c *external) Observe(ctx context.Context, mg resource.Managed) (managed.Ex
 		return managed.ExternalObservation{}, errors.New(errNotRole)
 	}
 
-	var upToDate bool
+	// var upToDate bool
+	upToDate := true
 	name := role.Name
 	authBackend := role.Spec.ForProvider.Backend
 	path := authBackend + "/roles/" + name
@@ -172,7 +173,7 @@ func (c *external) Observe(ctx context.Context, mg resource.Managed) (managed.Ex
 		crossplaneVault, _, _ := crossplaneToVaultFunc(role)
 		vaultData := parseToCrossplane(secret.Data)
 
-		upToDate, _ := isUpToDate(c.logger, *crossplaneVault, *vaultData)
+		upToDate, _ = isUpToDate(c.logger, *crossplaneVault, *vaultData)
 
 		if exists && upToDate {
 			role.SetConditions(xpv1.Available())

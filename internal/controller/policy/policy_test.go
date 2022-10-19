@@ -321,7 +321,7 @@ func TestUpdate(t *testing.T) {
 				err: nil,
 			},
 		},
-		"error creation": {
+		"error updating": {
 			reason: "error should be wrapped and bubbled up",
 			fields: fields{
 				clientBuilder: func(t *testing.T) clients.VaultClient {
