@@ -116,22 +116,9 @@ func TestCreate(t *testing.T) {
 			reason: "role is invalid",
 			fields: fields{
 				clientBuilder: func(t *testing.T) clients.VaultClient {
-
-					// invRole := getTestInvalidRole()
-					// invData, _ := crossplaneToVaultFunc(invRole)
-
-					// name := invRole.Name
-					// backend := invRole.Spec.ForProvider.Backend
-					// path := backend + "/roles/" + name
-
-					ctrl2 := gomock.NewController(t)
-					// logicalMock2 := fake.NewMockVaultLogicalClient(ctrl2)
-
-					// logicalMock2.EXPECT().Write(path, invData).Return(nil, nil)
-
-					clientMock2 := fake.NewMockVaultClient(ctrl2)
-					// clientMock2.EXPECT().Logical().Return(logicalMock2)
-					return clientMock2
+					ctrl := gomock.NewController(t)
+					clientMock := fake.NewMockVaultClient(ctrl)
+					return clientMock
 				},
 			},
 			args: args{
@@ -218,7 +205,7 @@ func TestObserve(t *testing.T) {
 					ResourceLateInitialized: false,
 					ConnectionDetails:       managed.ConnectionDetails{},
 				},
-				err: nil,
+				err: errors.Wrap(getTestDontExistError(), errRead),
 			},
 		},
 		"exist but outdated": {

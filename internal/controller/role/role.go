@@ -150,18 +150,20 @@ func (c *external) Observe(ctx context.Context, mg resource.Managed) (managed.Ex
 		return managed.ExternalObservation{}, errors.New(errNotRole)
 	}
 
-	upToDate := true
+	var upToDate bool
 	name := role.Name
 	authBackend := role.Spec.ForProvider.Backend
 	path := authBackend + "/roles/" + name
 
-	// c.logger.Debug("Reading role from %q", path)
-
 	secret, err := c.client.Logical().Read(path)
 	if err != nil {
-		return managed.ExternalObservation{}, errors.Wrap(err, errRead)
+		return managed.ExternalObservation{
+			ResourceExists:          false,
+			ResourceUpToDate:        false,
+			ResourceLateInitialized: false,
+			ConnectionDetails:       managed.ConnectionDetails{},
+		}, errors.Wrap(err, errRead)
 	}
-	// c.logger.Debug("Read role from %q", path)
 
 	exists := err == nil && secret != nil
 
