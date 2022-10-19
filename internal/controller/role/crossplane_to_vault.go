@@ -2,6 +2,7 @@ package role
 
 import (
 	"encoding/json"
+	"fmt"
 
 	"github.com/topfreegames/crossplane-provider-vault/apis/aws/v1alpha1"
 )
@@ -57,8 +58,8 @@ type CrossplaneToVault struct {
 	MaxStsTTL int `json:"max_sts_ttl,omitempty"`
 }
 
-// croosplaneToVaultFunc
-func crossplaneToVaultFunc(role *v1alpha1.Role) (map[string]interface{}, error) {
+// croosplaneToVaultFunc creates a vault object with all possible fields
+func crossplaneToVaultFunc(role *v1alpha1.Role) (*CrossplaneToVault, map[string]interface{}, error) {
 
 	crossplane := &CrossplaneToVault{
 		RoleName:              role.Name,
@@ -74,13 +75,67 @@ func crossplaneToVaultFunc(role *v1alpha1.Role) (map[string]interface{}, error) 
 		MaxStsTTL:             role.Spec.ForProvider.MaxStsTTL,
 	}
 
-	return decodeData(crossplane)
+	vaultInterface, err := decodeData(crossplane)
+	return crossplane, vaultInterface, err
 
 }
 
+// decodeData prepare the struct to be sent to Vault as vault only accepts interface
 func decodeData(role *CrossplaneToVault) (map[string]interface{}, error) {
 	d := map[string]interface{}{}
 	jsonObj, _ := json.Marshal(role)
 	json.Unmarshal(jsonObj, &d)
 	return d, nil
+}
+
+func parseToCrossplane(vaultData map[string]interface{}) *CrossplaneToVault {
+
+	return &CrossplaneToVault{
+		RoleName:              toString(vaultData, "role_name"),
+		Backend:               toString(vaultData, "backend"),
+		CredentialType:        toString(vaultData, "credential_type"),
+		IamRolesArn:           toStringSlices(vaultData, "role_arns"),
+		PoliciesArn:           toStringSlices(vaultData, "policy_arns"),
+		PolicyDocument:        toString(vaultData, "policy_document"),
+		IamGroups:             toStringSlices(vaultData, "iam_groups"),
+		UserPath:              toString(vaultData, "user_path"),
+		PermissionBoundaryArn: toString(vaultData, "permissions_boundary_arn"),
+		DefaultStsTTL:         toInt(vaultData, "default_sts_ttl"),
+		MaxStsTTL:             toInt(vaultData, "max_sts_ttl"),
+	}
+}
+
+// toStringSlices parse a array of object to array of strings
+func toStringSlices(data map[string]interface{}, field string) []string {
+
+	// crossplane unmentioned fields in the manifest are read as nil, so we
+	// should make the same for empty fields that comes from vault
+	if data[field] == nil {
+		return nil
+	}
+
+	dataInterface := data[field].([]interface{})
+	dataSlices := make([]string, len(dataInterface))
+	for i, v := range dataInterface {
+		dataSlices[i] = v.(string)
+	}
+
+	return dataSlices
+}
+
+// toString converts a json string object to string
+func toString(data map[string]interface{}, field string) string {
+	return fmt.Sprintf("%v", data[field])
+}
+
+// toint converts a json number object to int
+func toInt(data map[string]interface{}, field string) int {
+	if data[field] == nil {
+		return 0
+	}
+
+	f, _ := data[field].(json.Number).Int64()
+
+	return int(f)
+
 }

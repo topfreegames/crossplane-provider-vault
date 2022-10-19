@@ -23,6 +23,7 @@ package role
 import (
 	"context"
 	"fmt"
+	"reflect"
 
 	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
 	"github.com/hashicorp/vault/api"
@@ -56,6 +57,7 @@ const (
 	errUpdate            = "cannot update secret backend role"
 	errDelete            = "cannot delete secret backend role"
 	errRead              = "cannot read secret backend role"
+	errOutdated          = "cannot read secret backend role"
 
 	// Validation Errors
 	errValidationMessage  = "validation error for AWS Secret Backend Role"
@@ -148,14 +150,13 @@ func (c *external) Observe(ctx context.Context, mg resource.Managed) (managed.Ex
 		return managed.ExternalObservation{}, errors.New(errNotRole)
 	}
 
+	upToDate := true
 	name := role.Name
 	authBackend := role.Spec.ForProvider.Backend
-
 	path := authBackend + "/roles/" + name
 
 	// c.logger.Debug("Reading role from %q", path)
 
-	print(path)
 	secret, err := c.client.Logical().Read(path)
 	if err != nil {
 		return managed.ExternalObservation{}, errors.Wrap(err, errRead)
@@ -164,13 +165,16 @@ func (c *external) Observe(ctx context.Context, mg resource.Managed) (managed.Ex
 
 	exists := err == nil && secret != nil
 
-	upToDate := false
-	if exists {
-		upToDate = role.Spec.ForProvider.Backend == secret.Data["backend"]
-	}
+	if secret != nil {
 
-	if exists && upToDate {
-		role.SetConditions(xpv1.Available())
+		crossplaneVault, _, _ := crossplaneToVaultFunc(role)
+		vaultData := parseToCrossplane(secret.Data)
+
+		upToDate, _ := isUpToDate(c.logger, *crossplaneVault, *vaultData)
+
+		if exists && upToDate {
+			role.SetConditions(xpv1.Available())
+		}
 	}
 
 	return managed.ExternalObservation{
@@ -251,6 +255,7 @@ func (c *external) Delete(ctx context.Context, mg resource.Managed) error {
 	return nil
 }
 
+//nolint:all
 // validate the role as some fields are only allowed in case another field has a different value
 func validate(role *v1alpha1.Role) error {
 
@@ -293,6 +298,19 @@ func validate(role *v1alpha1.Role) error {
 	return nil
 }
 
+func isUpToDate(logger logging.Logger, crossplaneData, vaultData CrossplaneToVault) (bool, error) {
+	// these values comes empty from vault and we are assigning to eavois deepequal error
+	vaultData.Backend = crossplaneData.Backend
+	vaultData.RoleName = crossplaneData.RoleName
+
+	if !reflect.DeepEqual(crossplaneData, vaultData) {
+		return false, errors.New(errOutdated)
+	}
+
+	return true, nil
+
+}
+
 // write role validate the role and create it
 func (c *external) writeRole(role *v1alpha1.Role) (*api.Secret, error) {
 	validErr := validate(role)
@@ -301,7 +319,7 @@ func (c *external) writeRole(role *v1alpha1.Role) (*api.Secret, error) {
 		// errors.Wrap(validErr, errValidationMessage)
 	}
 
-	data, err := crossplaneToVaultFunc(role)
+	_, data, err := crossplaneToVaultFunc(role)
 	if err != nil {
 		return nil, fmt.Errorf("error decoding role spec: %w", err)
 	}

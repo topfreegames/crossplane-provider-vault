@@ -74,7 +74,7 @@ func TestCreate(t *testing.T) {
 				clientBuilder: func(t *testing.T) clients.VaultClient {
 
 					role := getTestRole()
-					data, _ := crossplaneToVaultFunc(role)
+					_, data, _ := crossplaneToVaultFunc(role)
 
 					name := role.Name
 					backend := role.Spec.ForProvider.Backend
