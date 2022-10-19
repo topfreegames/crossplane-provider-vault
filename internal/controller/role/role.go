@@ -46,12 +46,8 @@ import (
 )
 
 const (
-	errNotRole      = "managed resource is not a Role custom resource"
-	errTrackPCUsage = "cannot track ProviderConfig usage"
-	errGetPC        = "cannot get ProviderConfig"
-	errGetCreds     = "cannot get credentials"
+	errNotRole = "managed resource is not a Role custom resource"
 
-	errNewClient         = "cannot create new Service"
 	errNewExternalClient = "cannot create vault client from config"
 	errCreation          = "cannot create secret backend role"
 	errUpdate            = "cannot update secret backend role"
@@ -60,7 +56,6 @@ const (
 	errOutdated          = "cannot read secret backend role"
 
 	// Validation Errors
-	errValidationMessage  = "validation error for AWS Secret Backend Role"
 	errUnkownCredType     = "credential_type must be one of iam_user, assumed_role, or federation_token"
 	errMinRequirements    = "at least one of: `policy_document`, `policy_arns`, `role_arns` or `iam_groups` must be set"
 	errPermissionBoundary = "permissions_boundary_arn is only valid when credential_type is iam_user"
@@ -173,7 +168,7 @@ func (c *external) Observe(ctx context.Context, mg resource.Managed) (managed.Ex
 		crossplaneVault, _, _ := crossplaneToVaultFunc(role)
 		vaultData := parseToCrossplane(secret.Data)
 
-		upToDate, _ = isUpToDate(c.logger, *crossplaneVault, *vaultData)
+		upToDate, _ = isUpToDate(*crossplaneVault, *vaultData)
 
 		if exists && upToDate {
 			role.SetConditions(xpv1.Available())
@@ -301,7 +296,7 @@ func validate(role *v1alpha1.Role) error {
 	return nil
 }
 
-func isUpToDate(logger logging.Logger, crossplaneData, vaultData CrossplaneToVault) (bool, error) {
+func isUpToDate(crossplaneData, vaultData CrossplaneToVault) (bool, error) {
 	// these values comes empty from vault and we are assigning to eavois deepequal error
 	vaultData.Backend = crossplaneData.Backend
 	vaultData.RoleName = crossplaneData.RoleName

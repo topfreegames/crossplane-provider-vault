@@ -34,6 +34,7 @@ type RoleParameters struct {
 	// CredentialType - (Required) Specifies the type of credential to be used when retrieving credentials from the role. Must be one of iam_user, assumed_role, or federation_token.
 	// https://www.vaultproject.io/docs/secrets/aws
 	// +required
+	// +kubebuilder:validation:Enum:=iam_user;assumed_role;federation_token
 	CredentialType string `json:"credentialType"`
 
 	// IamRolesArn - (Optional) Specifies the ARNs of the AWS roles this Vault role is allowed to assume. Required when credential_type is assumed_role and prohibited otherwise.
@@ -54,6 +55,7 @@ type RoleParameters struct {
 
 	// UserPath - (Optional) The path for the user name. Valid only when credential_type is iam_user. Default is /.
 	// +optional
+	// +kubebuilder:default:=/
 	UserPath string `json:"userPath,omitempty"`
 
 	// PermissionBoundaryArn - (Optional) The ARN of the AWS Permissions Boundary to attach to IAM users created in the role. Valid only when credential_type is iam_user. If not specified, then no permissions boundary policy will be attached.

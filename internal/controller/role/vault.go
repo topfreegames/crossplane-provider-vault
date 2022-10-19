@@ -2,12 +2,18 @@ package role
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 
 	"github.com/topfreegames/crossplane-provider-vault/apis/aws/v1alpha1"
 )
 
 // Note: these values comes from https://registry.terraform.io/providers/hashicorp/vault/latest/docs/resources/aws_secret_backend_role
+
+const (
+	errMarshal   = "error while parsing to json"
+	errUnmarshal = "error parsing json to interface"
+)
 
 // CrossplaneToVault is a transport object to send to vault. The reason we are using it, its because vault only accepts values as snake_case
 type CrossplaneToVault struct {
@@ -83,8 +89,14 @@ func crossplaneToVaultFunc(role *v1alpha1.Role) (*CrossplaneToVault, map[string]
 // decodeData prepare the struct to be sent to Vault as vault only accepts interface
 func decodeData(role *CrossplaneToVault) (map[string]interface{}, error) {
 	d := map[string]interface{}{}
-	jsonObj, _ := json.Marshal(role)
-	json.Unmarshal(jsonObj, &d)
+	jsonObj, err := json.Marshal(role)
+	if err != nil {
+		return nil, errors.New(errMarshal)
+	}
+	err = json.Unmarshal(jsonObj, &d)
+	if err != nil {
+		return nil, errors.New(errUnmarshal)
+	}
 	return d, nil
 }
 
@@ -128,14 +140,12 @@ func toString(data map[string]interface{}, field string) string {
 	return fmt.Sprintf("%v", data[field])
 }
 
-// toint converts a json number object to int
+// toInt converts a json number object to int
 func toInt(data map[string]interface{}, field string) int {
 	if data[field] == nil {
 		return 0
 	}
 
 	f, _ := data[field].(json.Number).Int64()
-
 	return int(f)
-
 }

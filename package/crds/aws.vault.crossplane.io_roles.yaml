@@ -73,6 +73,10 @@ spec:
                       credential to be used when retrieving credentials from the role.
                       Must be one of iam_user, assumed_role, or federation_token.
                       https://www.vaultproject.io/docs/secrets/aws
+                    enum:
+                    - iam_user
+                    - assumed_role
+                    - federation_token
                     type: string
                   defaultStsTtl:
                     description: DefaultStsTTL -  (Optional) The default TTL in seconds
@@ -131,6 +135,7 @@ spec:
                       act as a filter on what the credentials can do, similar to policy_arns.
                     type: string
                   userPath:
+                    default: /
                     description: UserPath - (Optional) The path for the user name.
                       Valid only when credential_type is iam_user. Default is /.
                     type: string
