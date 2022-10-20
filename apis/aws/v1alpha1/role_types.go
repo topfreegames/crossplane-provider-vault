@@ -53,9 +53,8 @@ type RoleParameters struct {
 	// +optional
 	IamGroups []string `json:"iamGroups,omitempty"`
 
-	// UserPath - (Optional) The path for the user name. Valid only when credential_type is iam_user. Default is /.
+	// UserPath - (Optional) The path for the user name. Valid only when credential_type is iam_user. Default is /. We can't use kubebuilder to validate it because the default is only applicable when credential_type is iam_user
 	// +optional
-	// +kubebuilder:default:=/
 	UserPath string `json:"userPath,omitempty"`
 
 	// PermissionBoundaryArn - (Optional) The ARN of the AWS Permissions Boundary to attach to IAM users created in the role. Valid only when credential_type is iam_user. If not specified, then no permissions boundary policy will be attached.

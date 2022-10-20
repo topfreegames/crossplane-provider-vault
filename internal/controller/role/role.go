@@ -311,6 +311,9 @@ func isUpToDate(crossplaneData, vaultData CrossplaneToVault) (bool, error) {
 
 // write role validate the role and create it
 func (c *external) writeRole(role *v1alpha1.Role) error {
+
+	role = addDefaults(role)
+
 	validErr := validate(role)
 	if validErr != nil {
 		return validErr
@@ -335,4 +338,16 @@ func (c *external) writeRole(role *v1alpha1.Role) error {
 	c.logger.Debug("Created/Updated role %q on AWS backend %q", name, backend)
 
 	return nil
+}
+
+func addDefaults(role *v1alpha1.Role) *v1alpha1.Role {
+
+	userPath := role.Spec.ForProvider.UserPath
+	credentialType := role.Spec.ForProvider.CredentialType
+
+	if credentialType == "iam_user" && userPath == "" {
+		role.Spec.ForProvider.UserPath = "/"
+	}
+
+	return role
 }

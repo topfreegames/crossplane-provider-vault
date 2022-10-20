@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/topfreegames/crossplane-provider-vault/apis/aws/v1alpha1"
 )
@@ -73,7 +74,7 @@ func crossplaneToVaultFunc(role *v1alpha1.Role) (*CrossplaneToVault, map[string]
 		CredentialType:        role.Spec.ForProvider.CredentialType,
 		IamRolesArn:           role.Spec.ForProvider.IamRolesArn,
 		PoliciesArn:           role.Spec.ForProvider.PoliciesArn,
-		PolicyDocument:        role.Spec.ForProvider.PolicyDocument,
+		PolicyDocument:        fmtPolicyDocument(role.Spec.ForProvider.PolicyDocument),
 		IamGroups:             role.Spec.ForProvider.IamGroups,
 		UserPath:              role.Spec.ForProvider.UserPath,
 		PermissionBoundaryArn: role.Spec.ForProvider.PermissionBoundaryArn,
@@ -81,9 +82,14 @@ func crossplaneToVaultFunc(role *v1alpha1.Role) (*CrossplaneToVault, map[string]
 		MaxStsTTL:             role.Spec.ForProvider.MaxStsTTL,
 	}
 
-	vaultInterface, err := decodeData(crossplane)
-	return crossplane, vaultInterface, err
+	vaultData, err := decodeData(crossplane)
+	return crossplane, vaultData, err
 
+}
+
+func fmtPolicyDocument(policyDocument string) string {
+	polDoc := strings.Replace(policyDocument, "\n", "", -1)
+	return strings.Replace(polDoc, " ", "", -1)
 }
 
 // decodeData prepare the struct to be sent to Vault as vault only accepts interface

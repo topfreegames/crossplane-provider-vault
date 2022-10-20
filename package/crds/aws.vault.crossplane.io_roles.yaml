@@ -135,9 +135,10 @@ spec:
                       act as a filter on what the credentials can do, similar to policy_arns.
                     type: string
                   userPath:
-                    default: /
                     description: UserPath - (Optional) The path for the user name.
-                      Valid only when credential_type is iam_user. Default is /.
+                      Valid only when credential_type is iam_user. Default is /. We
+                      can't use kubebuilder to validate it because the default is
+                      only applicable when credential_type is iam_user
                     type: string
                 required:
                 - authBackend
