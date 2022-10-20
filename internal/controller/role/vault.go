@@ -88,8 +88,8 @@ func crossplaneToVaultFunc(role *v1alpha1.Role) (*CrossplaneToVault, map[string]
 }
 
 func fmtPolicyDocument(policyDocument string) string {
-	polDoc := strings.Replace(policyDocument, "\n", "", -1)
-	return strings.Replace(polDoc, " ", "", -1)
+	polDoc := strings.ReplaceAll(policyDocument, "\n", "")
+	return strings.ReplaceAll(polDoc, " ", "")
 }
 
 // decodeData prepare the struct to be sent to Vault as vault only accepts interface
