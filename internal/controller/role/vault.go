@@ -66,7 +66,7 @@ type CrossplaneToVault struct {
 }
 
 // croosplaneToVaultFunc creates a vault object with all possible fields
-func crossplaneToVaultFunc(role *v1alpha1.Role) (*CrossplaneToVault, map[string]interface{}, error) {
+func createVaultData(role *v1alpha1.Role) (*CrossplaneToVault, map[string]interface{}, error) {
 
 	crossplane := &CrossplaneToVault{
 		RoleName:              role.Name,
@@ -87,6 +87,7 @@ func crossplaneToVaultFunc(role *v1alpha1.Role) (*CrossplaneToVault, map[string]
 
 }
 
+// fmtPolicyDocument format the policy document removing any space and new line chars to match with the vault data
 func fmtPolicyDocument(policyDocument string) string {
 	polDoc := strings.ReplaceAll(policyDocument, "\n", "")
 	return strings.ReplaceAll(polDoc, " ", "")

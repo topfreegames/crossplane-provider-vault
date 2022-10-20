@@ -138,13 +138,13 @@ type external struct {
 	logger logging.Logger
 }
 
+// Observe is part of the Reconciler
 func (c *external) Observe(ctx context.Context, mg resource.Managed) (managed.ExternalObservation, error) {
 	role, ok := mg.(*v1alpha1.Role)
 	if !ok {
 		return managed.ExternalObservation{}, errors.New(errNotRole)
 	}
 
-	// var upToDate bool
 	upToDate := true
 	name := role.Name
 	authBackend := role.Spec.ForProvider.Backend
@@ -164,7 +164,7 @@ func (c *external) Observe(ctx context.Context, mg resource.Managed) (managed.Ex
 
 	if secret != nil {
 
-		crossplaneVault, _, _ := crossplaneToVaultFunc(role)
+		crossplaneVault, _, _ := createVaultData(role)
 		vaultData := parseToCrossplane(secret.Data)
 
 		upToDate, _ = isUpToDate(*crossplaneVault, *vaultData)
@@ -296,8 +296,9 @@ func validate(role *v1alpha1.Role) error {
 	return nil
 }
 
+// isUpToDate checks if both data are the same to set Ready as true in Crossplane
 func isUpToDate(crossplaneData, vaultData CrossplaneToVault) (bool, error) {
-	// these values comes empty from vault and we are assigning to eavois deepequal error
+	// these values comes empty from vault and we are assigning to avoid DeepEqual error
 	vaultData.Backend = crossplaneData.Backend
 	vaultData.RoleName = crossplaneData.RoleName
 
@@ -309,7 +310,7 @@ func isUpToDate(crossplaneData, vaultData CrossplaneToVault) (bool, error) {
 
 }
 
-// write role validate the role and create it
+// writeRole add the defaults (if needed), validate the role and create it
 func (c *external) writeRole(role *v1alpha1.Role) error {
 
 	role = addDefaults(role)
@@ -317,10 +318,9 @@ func (c *external) writeRole(role *v1alpha1.Role) error {
 	validErr := validate(role)
 	if validErr != nil {
 		return validErr
-		// errors.Wrap(validErr, errValidationMessage)
 	}
 
-	_, data, err := crossplaneToVaultFunc(role)
+	_, data, err := createVaultData(role)
 	if err != nil {
 		return fmt.Errorf("error decoding role spec: %w", err)
 	}

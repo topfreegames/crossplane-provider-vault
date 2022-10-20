@@ -78,7 +78,7 @@ func TestCreate(t *testing.T) {
 				clientBuilder: func(t *testing.T) clients.VaultClient {
 
 					role := getTestRole()
-					_, data, _ := crossplaneToVaultFunc(role)
+					_, data, _ := createVaultData(role)
 
 					name := role.Name
 					backend := role.Spec.ForProvider.Backend
@@ -305,7 +305,7 @@ func TestUpdate(t *testing.T) {
 				clientBuilder: func(t *testing.T) clients.VaultClient {
 
 					role := getTestRole()
-					_, data, _ := crossplaneToVaultFunc(role)
+					_, data, _ := createVaultData(role)
 
 					name := role.Name
 					backend := role.Spec.ForProvider.Backend
@@ -388,7 +388,7 @@ func TestDelete(t *testing.T) {
 				clientBuilder: func(t *testing.T) clients.VaultClient {
 
 					role := getTestRole()
-					_, data, _ := crossplaneToVaultFunc(role)
+					_, data, _ := createVaultData(role)
 
 					name := role.Name
 					backend := role.Spec.ForProvider.Backend
