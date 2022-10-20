@@ -26,7 +26,6 @@ import (
 	"reflect"
 
 	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
-	"github.com/hashicorp/vault/api"
 	"github.com/pkg/errors"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -199,7 +198,7 @@ func (c *external) Create(ctx context.Context, mg resource.Managed) (managed.Ext
 		return managed.ExternalCreation{}, errors.New(errNotRole)
 	}
 
-	_, err := c.writeRole(role)
+	err := c.writeRole(role)
 	if err != nil {
 		return managed.ExternalCreation{
 			ExternalNameAssigned: false,
@@ -221,7 +220,7 @@ func (c *external) Update(ctx context.Context, mg resource.Managed) (managed.Ext
 		return managed.ExternalUpdate{}, errors.New(errNotRole)
 	}
 
-	_, err := c.writeRole(role)
+	err := c.writeRole(role)
 	if err != nil {
 		return managed.ExternalUpdate{}, errors.Wrap(err, errUpdate)
 	}
@@ -253,8 +252,9 @@ func (c *external) Delete(ctx context.Context, mg resource.Managed) error {
 	return nil
 }
 
-//nolint:all
 // validate the role as some fields are only allowed in case another field has a different value
+//
+//nolint:gocyclo // Disabling lint here as we are doing many validation between fields that could not be done using kubebuilder
 func validate(role *v1alpha1.Role) error {
 
 	credentialType := role.Spec.ForProvider.CredentialType
@@ -310,16 +310,16 @@ func isUpToDate(crossplaneData, vaultData CrossplaneToVault) (bool, error) {
 }
 
 // write role validate the role and create it
-func (c *external) writeRole(role *v1alpha1.Role) (*api.Secret, error) {
+func (c *external) writeRole(role *v1alpha1.Role) error {
 	validErr := validate(role)
 	if validErr != nil {
-		return nil, validErr
+		return validErr
 		// errors.Wrap(validErr, errValidationMessage)
 	}
 
 	_, data, err := crossplaneToVaultFunc(role)
 	if err != nil {
-		return nil, fmt.Errorf("error decoding role spec: %w", err)
+		return fmt.Errorf("error decoding role spec: %w", err)
 	}
 
 	name := role.Name
@@ -327,12 +327,12 @@ func (c *external) writeRole(role *v1alpha1.Role) (*api.Secret, error) {
 	path := backend + "/roles/" + name
 
 	c.logger.Debug("Creating/Updating role %q on AWS backend %q", name, backend)
-	secret, err := c.client.Logical().Write(path, data)
+	_, err = c.client.Logical().Write(path, data)
 	if err != nil {
 		c.logger.Debug(fmt.Sprintf("error creating role %q for backend %q: %s", name, backend, err))
-		return nil, errors.Wrap(err, errCreation)
+		return errors.Wrap(err, errCreation)
 	}
 	c.logger.Debug("Created/Updated role %q on AWS backend %q", name, backend)
 
-	return secret, nil
+	return nil
 }
