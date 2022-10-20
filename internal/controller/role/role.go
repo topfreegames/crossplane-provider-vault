@@ -52,15 +52,6 @@ const (
 	errUpdate            = "cannot update secret backend role"
 	errDelete            = "cannot delete secret backend role"
 	errRead              = "cannot read secret backend role"
-	errOutdated          = "cannot read secret backend role"
-
-	// Validation Errors
-	errUnkownCredType     = "credential_type must be one of iam_user, assumed_role, or federation_token"
-	errMinRequirements    = "at least one of: `policy_document`, `policy_arns`, `role_arns` or `iam_groups` must be set"
-	errPermissionBoundary = "permissions_boundary_arn is only valid when credential_type is iam_user"
-	errUserPath           = "user_path is only valid when credential_type is iam_user"
-	errMaxTTL             = "max_sts_ttl is only valid when credential_type is assumed_role or federation_token"
-	errDefaultSts         = "default_sts_ttl is only valid when credential_type is assumed_role or federation_token"
 )
 
 // A NoOpService does nothing.
@@ -167,7 +158,7 @@ func (c *external) Observe(ctx context.Context, mg resource.Managed) (managed.Ex
 		crossplaneVault, _, _ := createVaultData(role)
 		vaultData := parseToCrossplane(secret.Data)
 
-		upToDate, _ = isUpToDate(*crossplaneVault, *vaultData)
+		upToDate = isUpToDate(*crossplaneVault, *vaultData)
 
 		if exists && upToDate {
 			role.SetConditions(xpv1.Available())
@@ -252,62 +243,13 @@ func (c *external) Delete(ctx context.Context, mg resource.Managed) error {
 	return nil
 }
 
-// validate the role as some fields are only allowed in case another field has a different value
-//
-//nolint:gocyclo // Disabling lint here as we are doing many validation between fields that could not be done using kubebuilder
-func validate(role *v1alpha1.Role) error {
-
-	credentialType := role.Spec.ForProvider.CredentialType
-	iamRolesArn := role.Spec.ForProvider.IamRolesArn
-	policiesArn := role.Spec.ForProvider.PoliciesArn
-	policyDocument := role.Spec.ForProvider.PolicyDocument
-	iamGroups := role.Spec.ForProvider.IamGroups
-	userPath := role.Spec.ForProvider.UserPath
-	permissionsBoundaryArn := role.Spec.ForProvider.PermissionBoundaryArn
-	defaultStsTTL := role.Spec.ForProvider.DefaultStsTTL
-	maxStsTTL := role.Spec.ForProvider.MaxStsTTL
-
-	if credentialType != "iam_user" && credentialType != "assumed_role" && credentialType != "federation_token" {
-		return errors.New(errUnkownCredType)
-	}
-
-	if policyDocument == "" && len(policiesArn) == 0 && len(iamRolesArn) == 0 && len(iamGroups) == 0 {
-		return errors.New(errMinRequirements)
-	}
-
-	if credentialType != "iam_user" {
-		if permissionsBoundaryArn != "" {
-			return errors.New(errPermissionBoundary)
-		}
-		if userPath != "" {
-			return errors.New(errUserPath)
-		}
-	}
-
-	if credentialType != "assumed_role" && credentialType != "federation_token" {
-		if maxStsTTL > 0 {
-			return errors.New(errMaxTTL)
-		}
-		if defaultStsTTL > 0 {
-			return errors.New(errDefaultSts)
-		}
-	}
-
-	return nil
-}
-
 // isUpToDate checks if both data are the same to set Ready as true in Crossplane
-func isUpToDate(crossplaneData, vaultData CrossplaneToVault) (bool, error) {
+func isUpToDate(crossplaneData, vaultData VaultRole) bool {
 	// these values comes empty from vault and we are assigning to avoid DeepEqual error
 	vaultData.Backend = crossplaneData.Backend
 	vaultData.RoleName = crossplaneData.RoleName
 
-	if !reflect.DeepEqual(crossplaneData, vaultData) {
-		return false, errors.New(errOutdated)
-	}
-
-	return true, nil
-
+	return reflect.DeepEqual(crossplaneData, vaultData)
 }
 
 // writeRole add the defaults (if needed), validate the role and create it
@@ -315,7 +257,7 @@ func (c *external) writeRole(role *v1alpha1.Role) error {
 
 	role = addDefaults(role)
 
-	validErr := validate(role)
+	validErr := role.Validate()
 	if validErr != nil {
 		return validErr
 	}

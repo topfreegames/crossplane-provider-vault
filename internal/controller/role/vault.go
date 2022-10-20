@@ -16,8 +16,8 @@ const (
 	errUnmarshal = "error parsing json to interface"
 )
 
-// CrossplaneToVault is a transport object to send to vault. The reason we are using it, its because vault only accepts values as snake_case
-type CrossplaneToVault struct {
+// VaultRole is a transport object to send to vault. The reason we are using it, its because vault only accepts values as snake_case
+type VaultRole struct {
 
 	// RoleName - Role Name
 	// +required
@@ -66,9 +66,9 @@ type CrossplaneToVault struct {
 }
 
 // croosplaneToVaultFunc creates a vault object with all possible fields
-func createVaultData(role *v1alpha1.Role) (*CrossplaneToVault, map[string]interface{}, error) {
+func createVaultData(role *v1alpha1.Role) (*VaultRole, map[string]interface{}, error) {
 
-	crossplane := &CrossplaneToVault{
+	crossplane := &VaultRole{
 		RoleName:              role.Name,
 		Backend:               role.Spec.ForProvider.Backend,
 		CredentialType:        role.Spec.ForProvider.CredentialType,
@@ -94,7 +94,7 @@ func fmtPolicyDocument(policyDocument string) string {
 }
 
 // decodeData prepare the struct to be sent to Vault as vault only accepts interface
-func decodeData(role *CrossplaneToVault) (map[string]interface{}, error) {
+func decodeData(role *VaultRole) (map[string]interface{}, error) {
 	d := map[string]interface{}{}
 	jsonObj, err := json.Marshal(role)
 	if err != nil {
@@ -107,9 +107,9 @@ func decodeData(role *CrossplaneToVault) (map[string]interface{}, error) {
 	return d, nil
 }
 
-func parseToCrossplane(vaultData map[string]interface{}) *CrossplaneToVault {
+func parseToCrossplane(vaultData map[string]interface{}) *VaultRole {
 
-	return &CrossplaneToVault{
+	return &VaultRole{
 		RoleName:              toString(vaultData, "role_name"),
 		Backend:               toString(vaultData, "backend"),
 		CredentialType:        toString(vaultData, "credential_type"),

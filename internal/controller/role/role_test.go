@@ -51,6 +51,10 @@ func getTestDeleteError() error {
 	return errors.New("failed to delete a role")
 }
 
+func getInvalidCredTypeError() error {
+	return errors.New("credential_type must be one of iam_user, assumed_role, or federation_token")
+}
+
 func TestCreate(t *testing.T) {
 	type fields struct {
 		clientBuilder func(t *testing.T) clients.VaultClient
@@ -134,7 +138,7 @@ func TestCreate(t *testing.T) {
 					ExternalNameAssigned: false,
 					ConnectionDetails:    managed.ConnectionDetails{},
 				},
-				err: errors.Wrap(errors.New(errUnkownCredType), errCreation),
+				err: errors.Wrap(getInvalidCredTypeError(), errCreation),
 			},
 		},
 	}

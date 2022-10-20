@@ -17,12 +17,23 @@ limitations under the License.
 package v1alpha1
 
 import (
+	"errors"
 	"reflect"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 
 	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
+)
+
+const (
+	// Validation Errors
+	errUnkownCredType     = "credential_type must be one of iam_user, assumed_role, or federation_token"
+	errMinRequirements    = "at least one of: `policy_document`, `policy_arns`, `role_arns` or `iam_groups` must be set"
+	errPermissionBoundary = "permissions_boundary_arn is only valid when credential_type is iam_user"
+	errUserPath           = "user_path is only valid when credential_type is iam_user"
+	errMaxTTL             = "max_sts_ttl is only valid when credential_type is assumed_role or federation_token"
+	errDefaultSts         = "default_sts_ttl is only valid when credential_type is assumed_role or federation_token"
 )
 
 // RoleParameters are the configurable fields of a Role.
@@ -123,4 +134,72 @@ var (
 
 func init() {
 	SchemeBuilder.Register(&Role{}, &RoleList{})
+}
+
+// Validate the role as some fields are only allowed in case another field has a different value
+func (r *Role) Validate() error {
+
+	credentialType := r.Spec.ForProvider.CredentialType
+
+	if !r.validCredentialType() {
+		return errors.New(errUnkownCredType)
+	}
+
+	if !r.validPolicyDocument() {
+		return errors.New(errMinRequirements)
+	}
+
+	if credentialType != "iam_user" {
+		if !r.validBoundary() {
+			return errors.New(errPermissionBoundary)
+		}
+		if !r.validUserPath() {
+			return errors.New(errUserPath)
+		}
+	}
+
+	if credentialType != "assumed_role" && credentialType != "federation_token" {
+		if !r.validMaxStsTTL() {
+			return errors.New(errMaxTTL)
+		}
+		if !r.validDefaultStsTTL() {
+			return errors.New(errDefaultSts)
+		}
+	}
+
+	return nil
+}
+
+func (r *Role) validCredentialType() bool {
+	ct := r.Spec.ForProvider.CredentialType
+	return ct == "iam_user" || ct == "assumed_role" || ct == "federation_token"
+}
+
+func (r *Role) validPolicyDocument() bool {
+	iamRolesArn := r.Spec.ForProvider.IamRolesArn
+	policiesArn := r.Spec.ForProvider.PoliciesArn
+	policyDocument := r.Spec.ForProvider.PolicyDocument
+	iamGroups := r.Spec.ForProvider.IamGroups
+
+	return policyDocument != "" || len(policiesArn) > 0 || len(iamRolesArn) > 0 || len(iamGroups) > 0
+}
+
+func (r *Role) validBoundary() bool {
+	permissionsBoundaryArn := r.Spec.ForProvider.PermissionBoundaryArn
+	return permissionsBoundaryArn == ""
+}
+
+func (r *Role) validUserPath() bool {
+	userPath := r.Spec.ForProvider.UserPath
+	return userPath == ""
+}
+
+func (r *Role) validMaxStsTTL() bool {
+	maxStsTTL := r.Spec.ForProvider.MaxStsTTL
+	return maxStsTTL == 0
+}
+
+func (r *Role) validDefaultStsTTL() bool {
+	defaultStsTTL := r.Spec.ForProvider.DefaultStsTTL
+	return defaultStsTTL == 0
 }
