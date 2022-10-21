@@ -64,68 +64,110 @@ func TestObserve(t *testing.T) {
 		args   args
 		want   want
 	}{
-		"doesn't exist": {
+		"does not exist": {
 			reason: "JWT/OIDC role should not exist",
 			fields: fields{
 				clientBuilder: func(t *testing.T) clients.VaultClient {
-					jwtRole := &v1alpha1.Jwt{
-						TypeMeta: metav1.TypeMeta{
-							Kind:       v1alpha1.JwtKind,
-							APIVersion: v1alpha1.JwtKindAPIVersion,
-						},
-						ObjectMeta: metav1.ObjectMeta{
-							Name: "roleTest",
-						},
-						Spec: v1alpha1.JwtSpec{
-							ResourceSpec: xpv1.ResourceSpec{
-								DeletionPolicy: "Delete",
-							},
-							ForProvider: v1alpha1.JwtParameters{
-								Backend:  pointer.String("gitlab"),
-								RoleType: pointer.String("jwt"),
-							},
-						},
-					}
+					jwtRole := getTestRole()
 
 					name := jwtRole.Name
 					path := jwtAuthBackendRolePath(*jwtRole.Spec.ForProvider.Backend, name)
 
-					ctrl := gomock.NewController(t)
-					logicalMock := fake.NewMockVaultLogicalClient(ctrl)
-
+					clientMock, logicalMock := newMock(t)
 					logicalMock.EXPECT().Read(path).Return(&api.Secret{}, errors.New("role does not exist"))
-
-					clientMock := fake.NewMockVaultClient(ctrl)
-					clientMock.EXPECT().Logical().Return(logicalMock)
 
 					return clientMock
 				},
 			},
 			args: args{
 				ctx: context.TODO(),
-				mg: &v1alpha1.Jwt{
-					TypeMeta: metav1.TypeMeta{
-						Kind:       v1alpha1.JwtKind,
-						APIVersion: v1alpha1.JwtKindAPIVersion,
-					},
-					ObjectMeta: metav1.ObjectMeta{
-						Name: "roleTest",
-					},
-					Spec: v1alpha1.JwtSpec{
-						ResourceSpec: xpv1.ResourceSpec{
-							DeletionPolicy: "Delete",
-						},
-						ForProvider: v1alpha1.JwtParameters{
-							Backend:  pointer.String("gitlab"),
-							RoleType: pointer.String("jwt"),
-						},
-					},
-				},
+				mg:  getTestRole(),
 			},
 			want: want{
 				o: managed.ExternalObservation{
 					ResourceExists:          false,
 					ResourceUpToDate:        true,
+					ResourceLateInitialized: false,
+					ConnectionDetails:       managed.ConnectionDetails{},
+				},
+				err: nil,
+			},
+		},
+		"exists but outdated": {
+			reason: "role exists but is outdated",
+			fields: fields{
+				clientBuilder: func(t *testing.T) clients.VaultClient {
+					role := getTestRole()
+
+					path := jwtAuthBackendRolePath(*role.Spec.ForProvider.Backend, role.Name)
+					secret := &api.Secret{
+						RequestID:     "",
+						LeaseID:       "",
+						LeaseDuration: 0,
+						Renewable:     false,
+						Data: map[string]interface{}{
+							"role_type": "oidc",
+						},
+						Warnings: []string{},
+						Auth:     &api.SecretAuth{},
+						WrapInfo: &api.SecretWrapInfo{},
+					}
+
+					clientMock, logicalMock := newMock(t)
+					logicalMock.EXPECT().Read(path).Return(secret, nil)
+
+					return clientMock
+				},
+			},
+			args: args{
+				ctx: context.TODO(),
+				mg:  getTestRole(),
+			},
+			want: want{
+				o: managed.ExternalObservation{
+					ResourceExists:          true,
+					ResourceUpToDate:        false,
+					ResourceLateInitialized: false,
+					ConnectionDetails:       managed.ConnectionDetails{},
+				},
+				err: nil,
+			},
+		},
+		"exists and is up to date": {
+			reason: "role exists but is outdated",
+			fields: fields{
+				clientBuilder: func(t *testing.T) clients.VaultClient {
+					role := getTestRole()
+
+					path := jwtAuthBackendRolePath(*role.Spec.ForProvider.Backend, role.Name)
+					secret := &api.Secret{
+						RequestID:     "",
+						LeaseID:       "",
+						LeaseDuration: 0,
+						Renewable:     false,
+						Data: map[string]interface{}{
+							"role_type": "jwt",
+							"backend":   "gitlab",
+						},
+						Warnings: []string{},
+						Auth:     &api.SecretAuth{},
+						WrapInfo: &api.SecretWrapInfo{},
+					}
+
+					clientMock, logicalMock := newMock(t)
+					logicalMock.EXPECT().Read(path).Return(secret, nil)
+
+					return clientMock
+				},
+			},
+			args: args{
+				ctx: context.TODO(),
+				mg:  getTestRole(),
+			},
+			want: want{
+				o: managed.ExternalObservation{
+					ResourceExists:          true,
+					ResourceUpToDate:        false,
 					ResourceLateInitialized: false,
 					ConnectionDetails:       managed.ConnectionDetails{},
 				},
@@ -146,4 +188,35 @@ func TestObserve(t *testing.T) {
 			}
 		})
 	}
+}
+
+func getTestRole() *v1alpha1.Jwt {
+	return &v1alpha1.Jwt{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       v1alpha1.JwtKind,
+			APIVersion: v1alpha1.JwtKindAPIVersion,
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "roleTest",
+		},
+		Spec: v1alpha1.JwtSpec{
+			ResourceSpec: xpv1.ResourceSpec{
+				DeletionPolicy: "Delete",
+			},
+			ForProvider: v1alpha1.JwtParameters{
+				Backend:  pointer.String("gitlab"),
+				RoleType: pointer.String("jwt"),
+			},
+		},
+	}
+}
+
+func newMock(t *testing.T) (*fake.MockVaultClient, *fake.MockVaultLogicalClient) {
+	ctrl := gomock.NewController(t)
+	logicalMock := fake.NewMockVaultLogicalClient(ctrl)
+
+	clientMock := fake.NewMockVaultClient(ctrl)
+	clientMock.EXPECT().Logical().Return(logicalMock)
+
+	return clientMock, logicalMock
 }
