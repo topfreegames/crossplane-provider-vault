@@ -18,6 +18,7 @@ package jwt
 
 import (
 	"context"
+	"encoding/json"
 	"reflect"
 	"strings"
 
@@ -143,8 +144,13 @@ func (c *external) Observe(ctx context.Context, mg resource.Managed) (managed.Ex
 	if response != nil && err == nil {
 		exists = true
 
-		crossplaneData := decodeData(role)
-		upToDate = isUpToDate(c.logger, crossplaneData, response.Data)
+		crossplaneData := RoleFromCrossplane(role)
+		vaultData := RoleFromVault(response.Data)
+
+		// Set this in the struct in order to compare
+		vaultData.Name = role.Name
+
+		upToDate = reflect.DeepEqual(*crossplaneData, *vaultData)
 	}
 
 	if exists && upToDate {
@@ -174,10 +180,9 @@ func (c *external) Create(ctx context.Context, mg resource.Managed) (managed.Ext
 		return managed.ExternalCreation{}, errors.New(errNotJwt)
 	}
 
-	path := jwtAuthBackendRolePath(*role.Spec.ForProvider.Backend, role.Name)
-
 	data := decodeData(role)
 
+	path := jwtAuthBackendRolePath(*role.Spec.ForProvider.Backend, role.Name)
 	_, err := c.client.Logical().Write(path, data)
 	if err != nil {
 		return managed.ExternalCreation{}, errors.Wrap(err, errCreation)
@@ -226,117 +231,15 @@ func (c *external) Delete(ctx context.Context, mg resource.Managed) error {
 }
 
 func decodeData(data *v1alpha1.Jwt) map[string]interface{} {
-	d := map[string]interface{}{}
-	d["role_name"] = data.ObjectMeta.Name
+	vaultData := map[string]interface{}{}
 
-	spec := data.Spec.ForProvider
-	if spec.Namespace != nil {
-		d["namespace"] = *spec.Namespace
-	}
+	v := RoleFromCrossplane(data)
+	jsonObj, _ := json.Marshal(v)
+	json.Unmarshal(jsonObj, &vaultData)
 
-	if spec.RoleType != nil {
-		d["role_type"] = *spec.RoleType
-	}
-
-	if spec.BoundAudiences != nil {
-		boundAudiences := make([]interface{}, len(spec.BoundAudiences))
-		for i := range spec.BoundAudiences {
-			boundAudiences[i] = *spec.BoundAudiences[i]
-		}
-		d["bound_audiences"] = boundAudiences
-	}
-
-	d["user_claim"] = *spec.UserClaim
-
-	if spec.UserClaimJsonPointer != nil {
-		d["user_claim_json_pointer"] = *spec.UserClaimJsonPointer
-	}
-
-	if spec.BoundSubject != nil {
-		d["bound_subject"] = *spec.BoundSubject
-	}
-
-	if spec.BoundClaims != nil {
-		boundClaims := make(map[string]interface{}, len(spec.BoundClaims))
-		for key, value := range spec.BoundClaims {
-			boundClaims[key] = *value
-		}
-		d["bound_claims"] = boundClaims
-	}
-
-	if spec.BoundClaimsType != nil {
-		d["bound_claims_type"] = *spec.BoundClaimsType
-	}
-
-	if spec.ClaimMappings != nil {
-		claimMappings := make(map[string]interface{}, len(spec.BoundAudiences))
-		for key, value := range spec.ClaimMappings {
-			claimMappings[key] = *value
-		}
-		d["claim_mappings"] = claimMappings
-	}
-
-	if spec.OIDCScopes != nil {
-		oidcScopes := make([]interface{}, len(spec.OIDCScopes))
-		for i := range spec.OIDCScopes {
-			oidcScopes[i] = *spec.OIDCScopes[i]
-		}
-		d["oidc_scopes"] = oidcScopes
-	}
-
-	if spec.GroupsClaim != nil {
-		d["groups_claim"] = *spec.GroupsClaim
-	}
-	if spec.Backend != nil {
-		d["backend"] = *spec.Backend
-	}
-
-	if spec.AllowedRedirectURIs != nil {
-		d["allowed_redirect_uris"] = spec.AllowedRedirectURIs
-	}
-
-	if spec.ClockSkewLeeway != nil {
-		d["clock_skew_leeway"] = *spec.ClockSkewLeeway
-	}
-
-	if spec.ExpirationLeeway != nil {
-		d["expiration_leeway"] = *spec.ExpirationLeeway
-	}
-
-	if spec.NotBeforeLeeway != nil {
-		d["not_before_leeway"] = *spec.NotBeforeLeeway
-	}
-
-	if spec.VerboseOIDCLogging != nil {
-		d["verbose_oidc_logging"] = *spec.VerboseOIDCLogging
-	}
-	if spec.MaxAge != nil {
-		d["max_age"] = *spec.MaxAge
-	}
-
-	return d
+	return vaultData
 }
 
 func jwtAuthBackendRolePath(backend, role string) string {
 	return "auth/" + strings.Trim(backend, "/") + "/role/" + strings.Trim(role, "/")
-}
-
-func isUpToDate(logger logging.Logger, crossplaneData, vaultData map[string]interface{}) bool {
-	for key, value := range crossplaneData {
-		if key == "role_name" || key == "backend" {
-			continue
-		}
-
-		vaultValue, ok := vaultData[key]
-		if !ok {
-			return false
-		}
-
-		if !reflect.DeepEqual(value, vaultValue) {
-			return false
-		}
-
-	}
-
-	return true
 }
