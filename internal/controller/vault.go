@@ -23,6 +23,7 @@ import (
 	"github.com/topfreegames/crossplane-provider-vault/internal/controller/config"
 	"github.com/topfreegames/crossplane-provider-vault/internal/controller/jwt"
 	"github.com/topfreegames/crossplane-provider-vault/internal/controller/policy"
+	"github.com/topfreegames/crossplane-provider-vault/internal/controller/role"
 )
 
 // Setup creates all Vault controllers with the supplied logger and adds them to
@@ -31,6 +32,7 @@ func Setup(mgr ctrl.Manager, o controller.Options) error {
 	for _, setup := range []func(ctrl.Manager, controller.Options) error{
 		config.Setup,
 		policy.Setup,
+		role.Setup,
 		jwt.Setup,
 	} {
 		if err := setup(mgr, o); err != nil {

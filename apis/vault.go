@@ -19,6 +19,7 @@ package apis
 
 import (
 	authv1alpha1 "github.com/topfreegames/crossplane-provider-vault/apis/auth/v1alpha1"
+	awsv1alpha1 "github.com/topfreegames/crossplane-provider-vault/apis/aws/v1alpha1"
 	sysv1alpha1 "github.com/topfreegames/crossplane-provider-vault/apis/sys/v1alpha1"
 	vaultv1alpha1 "github.com/topfreegames/crossplane-provider-vault/apis/v1alpha1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -29,6 +30,7 @@ func init() {
 	AddToSchemes = append(AddToSchemes,
 		vaultv1alpha1.SchemeBuilder.AddToScheme,
 		sysv1alpha1.SchemeBuilder.AddToScheme,
+		awsv1alpha1.SchemeBuilder.AddToScheme,
 		authv1alpha1.SchemeBuilder.AddToScheme,
 	)
 }

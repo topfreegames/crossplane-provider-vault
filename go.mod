@@ -3,7 +3,7 @@ module github.com/topfreegames/crossplane-provider-vault
 go 1.18
 
 require (
-	github.com/crossplane/crossplane-runtime v0.17.0
+	github.com/crossplane/crossplane-runtime v0.18.0
 	github.com/crossplane/crossplane-tools v0.0.0-20220310165030-1f43fc12793e
 	github.com/golang/mock v1.5.0
 	github.com/google/go-cmp v0.5.6
