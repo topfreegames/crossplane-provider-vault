@@ -122,8 +122,8 @@ func (in *JwtParameters) DeepCopyInto(out *JwtParameters) {
 		*out = new(string)
 		**out = **in
 	}
-	if in.UserClaimJsonPointer != nil {
-		in, out := &in.UserClaimJsonPointer, &out.UserClaimJsonPointer
+	if in.UserClaimJSONPointer != nil {
+		in, out := &in.UserClaimJSONPointer, &out.UserClaimJSONPointer
 		*out = new(bool)
 		**out = **in
 	}

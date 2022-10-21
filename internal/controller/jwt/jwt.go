@@ -42,12 +42,7 @@ import (
 )
 
 const (
-	errNotJwt       = "managed resource is not a Jwt custom resource"
-	errTrackPCUsage = "cannot track ProviderConfig usage"
-	errGetPC        = "cannot get ProviderConfig"
-	errGetCreds     = "cannot get credentials"
-
-	errNewClient         = "cannot create new Service"
+	errNotJwt            = "managed resource is not a Jwt custom resource"
 	errNewExternalClient = "cannot create vault client from config"
 
 	errCreation = "cannot create JWT role"
@@ -144,8 +139,8 @@ func (c *external) Observe(ctx context.Context, mg resource.Managed) (managed.Ex
 	if response != nil && err == nil {
 		exists = true
 
-		crossplaneData := RoleFromCrossplane(role)
-		vaultData := RoleFromVault(response.Data)
+		crossplaneData := fromCrossplane(role)
+		vaultData := fromVault(response.Data)
 
 		// Set this in the struct in order to compare
 		vaultData.Name = role.Name
@@ -233,9 +228,9 @@ func (c *external) Delete(ctx context.Context, mg resource.Managed) error {
 func decodeData(data *v1alpha1.Jwt) map[string]interface{} {
 	vaultData := map[string]interface{}{}
 
-	v := RoleFromCrossplane(data)
+	v := fromCrossplane(data)
 	jsonObj, _ := json.Marshal(v)
-	json.Unmarshal(jsonObj, &vaultData)
+	_ = json.Unmarshal(jsonObj, &vaultData)
 
 	return vaultData
 }

@@ -11,7 +11,7 @@ type VaultLogicalClient interface {
 	Read(path string) (*vault.Secret, error)
 }
 
-// Sys returns the vault sys subclient
+// Logical returns the vault logical subclient
 func (vc *VaultClientWrapper) Logical() VaultLogicalClient {
 	return vc.Client.Logical()
 }

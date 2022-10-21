@@ -8,6 +8,7 @@ import (
 	"k8s.io/utils/pointer"
 )
 
+// Role is an helper struct to compare the data from the crossplane resource and with data from vault
 type Role struct {
 	Name                 string                 `json:"role_name"`
 	Namespace            string                 `json:"namespace"`
@@ -38,10 +39,10 @@ type Role struct {
 	TokenType            string                 `json:"token_type"`
 }
 
-func RoleFromVault(data map[string]interface{}) *Role {
+func fromVault(data map[string]interface{}) *Role {
 	role := Role{}
 	jsonObj, _ := json.Marshal(data)
-	json.Unmarshal(jsonObj, &role)
+	_ = json.Unmarshal(jsonObj, &role)
 	return &role
 }
 
@@ -53,7 +54,7 @@ func ternary[T any](exp bool, a T, b T) T {
 	return b
 }
 
-func RoleFromCrossplane(crossplane *v1alpha1.Jwt) *Role {
+func fromCrossplane(crossplane *v1alpha1.Jwt) *Role {
 	d := crossplane.Spec.ForProvider
 	r := &Role{
 		Name:                 crossplane.Name,
@@ -61,7 +62,7 @@ func RoleFromCrossplane(crossplane *v1alpha1.Jwt) *Role {
 		RoleType:             *ternary(d.Namespace == nil, pointer.String(""), d.RoleType),
 		BoundAudiences:       sliceToInterface(d.BoundAudiences),
 		UserClaim:            *ternary(d.Namespace == nil, pointer.String(""), d.UserClaim),
-		UserClaimJsonPointer: *ternary(d.Namespace == nil, pointer.Bool(false), d.UserClaimJsonPointer),
+		UserClaimJsonPointer: *ternary(d.Namespace == nil, pointer.Bool(false), d.UserClaimJSONPointer),
 		BoundSubject:         *ternary(d.Namespace == nil, pointer.String(""), d.BoundSubject),
 		BoundClaims:          mapToInterface(d.BoundClaims),
 		BoundClaimsType:      *ternary(d.Namespace == nil, pointer.String(""), d.BoundClaimsType),
