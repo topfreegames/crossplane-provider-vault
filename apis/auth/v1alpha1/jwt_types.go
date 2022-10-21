@@ -35,13 +35,14 @@ type JwtParameters struct {
 	Namespace *string `json:"namespace"`
 
 	// Type of role, either "oidc" (default) or "jwt"
+	// +kubebuilder:default:="oidc"
 	// +optional
 	RoleType *string `json:"type,omitempty"`
 
 	// List of aud claims to match against. Any match is sufficient.
 	// Required for roles of type jwt, optional for roles of type oidc)
 	// +optional
-	BoundAudiences []*string `json:"boundAudiences,omitempty"`
+	BoundAudiences []string `json:"boundAudiences,omitempty"`
 
 	// The claim to use to uniquely identify the user; this will be used
 	// as the name for the Identity entity alias created due to a successful login.
@@ -50,68 +51,128 @@ type JwtParameters struct {
 	// Specifies if the user_claim value uses JSON pointer syntax for referencing claims.
 	// By default, the user_claim value will not use JSON pointer. Requires Vault 1.11+.
 	// +optional
+	// +kubebuilder:default:=false
 	UserClaimJsonPointer *bool `json:"userClaimJsonPointer,omitempty"`
 
 	// If set, requires that the sub claim matches this value.
 	// +optional
+	// +kubebuilder:default:=""
 	BoundSubject *string `json:"boundSubject,omitempty"`
 
 	// f set, a map of claims to values to match against. A claim's value must be a string,
 	//  which may contain one value or multiple comma-separated values, e.g. "red" or "red,green,blue"
 	// +optional
-	BoundClaims map[string]*string `json:"boundClaims,omitempty"`
+	BoundClaims map[string]string `json:"boundClaims,omitempty"`
 
 	// How to interpret values in the claims/values map (bound_claims): can be either string (exact match) or glob (wildcard match). Requires Vault 1.4.0 or above.
 	// +optional
+	// +kubebuilder:default:="string"
 	BoundClaimsType *string `json:"boundClaimsType,omitempty"`
 
 	// If set, a map of claims (keys) to be copied to specified metadata fields (values).
 	// +optional
-	ClaimMappings map[string]*string `json:"claimMappings,omitempty"`
+	ClaimMappings map[string]string `json:"claimMappings,omitempty"`
 
 	// If set, a list of OIDC scopes to be used with an OIDC role. The standard scope "openid" is
 	//  automatically included and need not be specified.
 	// +optional
-	OIDCScopes []*string `json:"oidcScopes,omitempty"`
+	OIDCScopes []string `json:"oidcScopes,omitempty"`
 
 	// The claim to use to uniquely identify the set of groups to which the user belongs;
 	// this will be used as the names for the Identity group aliases created due to a successful login.
 	// The claim value must be a list of strings.
 	// +optional
+	// +kubebuilder:default:=""
 	GroupsClaim *string `json:"groupsClaim,omitempty"`
 
 	// The unique name of the auth backend to configure. Defaults to jwt.
 	// +optional
+	// +kubebuilder:default:=jwt
 	Backend *string `json:"backend,omitempty"`
 
 	// The list of allowed values for redirect_uri during OIDC logins. Required for OIDC roles
 	// +optional
-	AllowedRedirectURIs []*string `json:"allowedRedirectURIs,omitempty"`
+	AllowedRedirectURIs []string `json:"allowedRedirectURIs,omitempty"`
 
 	// The amount of leeway to add to all claims to account for clock skew, in seconds. Defaults to 60 seconds
 	// if set to 0 and can be disabled if set to -1. Only applicable with "jwt" roles.
 	// +optional
+	// +kubebuilder:default:=0
 	ClockSkewLeeway *int `json:"clockSkewLeeway,omitempty"`
 
 	// The amount of leeway to add to expiration (exp) claims to account for clock skew, in seconds.
 	// Defaults to 60 seconds if set to 0 and can be disabled if set to -1. Only applicable with "jwt" roles.
 	// +optional
+	// +kubebuilder:default:=0
 	ExpirationLeeway *int `json:"expirationLeeway,omitempty"`
 
 	// The amount of leeway to add to not before (nbf) claims to account for clock skew, in seconds.
 	//  Defaults to 60 seconds if set to 0 and can be disabled if set to -1. Only applicable with "jwt" roles.
 	// +optional
+	// +kubebuilder:default:=0
 	NotBeforeLeeway *int `json:"notBeforeLeeway,omitempty"`
 
 	// Log received OIDC tokens and claims when debug-level logging is active. Not recommended in production
 	// since sensitive information may be present in OIDC responses.
 	// +optional
+	// +kubebuilder:default:=false
 	VerboseOIDCLogging *bool `json:"verboseOIDCLogging,omitempty"`
 
 	// Specifies the allowable elapsed time in seconds since the last time the user was actively
 	// authenticated with the OIDC provider.
 	// +optional
+	// +kubebuilder:default:=0
 	MaxAge *int `json:"maxAge,omitempty"`
+
+	// The incremental lifetime for generated tokens. This current value of this will be referenced at renewal time.
+	// +optional
+	// +kubebuilder:default:=0
+	TokenTTL *int `json:"token_ttl,omitempty"`
+
+	// The maximum lifetime for generated tokens. This current value of this will be referenced at renewal time.
+	// +optional
+	// +kubebuilder:default:=0
+	TokenMaxTTL *int `json:"token_max_ttl,omitempty"`
+
+	// List of policies to encode onto generated tokens.
+	// Depending on the auth method, this list may be supplemented by user/group/other values.
+	// +optional
+	TokenPolicies []string `json:"token_policies,omitempty"`
+
+	// List of CIDR blocks; if set, specifies blocks of IP addresses which can authenticate successfully,
+	// and ties the resulting token to these blocks as well.
+	// +optional
+	TokenBoundCIDRS []string `json:"token_bound_cidrs,omitempty"`
+
+	// If set, will encode an explicit max TTL onto the token. This is a hard cap even if token_ttl
+	// and token_max_ttl would otherwise allow a renewal.
+	// +optional
+	// +kubebuilder:default:=0
+	TokenExplicitMaxTTL *int `json:"token_explicit_max_ttl,omitempty"`
+
+	// If set, the default policy will not be set on generated tokens; otherwise it will be added to the policies set in token_policies.
+	// +optional
+	// +kubebuilder:default:=false
+	TokenNoDefaultPolicy *bool `json:"token_no_default_policy,omitempty"`
+
+	// The maximum number of times a generated token may be used (within its lifetime); 0 means unlimited.
+	// If you require the token to have the ability to create child tokens, you will need to set this value to 0.
+	// +optional
+	// +kubebuilder:default:=0
+	TokenNumUses *int `json:"token_num_uses,omitempty"`
+
+	// The period, if any, to set on the token.
+	// +optional
+	// +kubebuilder:default:=0
+	TokenPeriod *int `json:"token_period,omitempty"`
+
+	// The type of token that should be generated. Can be service, batch, or default to use the mount's tuned
+	// default (which unless changed will be service tokens). For token store roles, there are two additional
+	// possibilities: default-service and default-batch which specify the type to return unless the client requests
+	// a different type at generation time.
+	// +optional
+	// +kubebuilder:default:="default"
+	TokenType *string `json:"token_type,omitempty"`
 }
 
 // JwtObservation are the observable fields of a Jwt.

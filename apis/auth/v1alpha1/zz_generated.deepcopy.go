@@ -114,14 +114,8 @@ func (in *JwtParameters) DeepCopyInto(out *JwtParameters) {
 	}
 	if in.BoundAudiences != nil {
 		in, out := &in.BoundAudiences, &out.BoundAudiences
-		*out = make([]*string, len(*in))
-		for i := range *in {
-			if (*in)[i] != nil {
-				in, out := &(*in)[i], &(*out)[i]
-				*out = new(string)
-				**out = **in
-			}
-		}
+		*out = make([]string, len(*in))
+		copy(*out, *in)
 	}
 	if in.UserClaim != nil {
 		in, out := &in.UserClaim, &out.UserClaim
@@ -140,17 +134,9 @@ func (in *JwtParameters) DeepCopyInto(out *JwtParameters) {
 	}
 	if in.BoundClaims != nil {
 		in, out := &in.BoundClaims, &out.BoundClaims
-		*out = make(map[string]*string, len(*in))
+		*out = make(map[string]string, len(*in))
 		for key, val := range *in {
-			var outVal *string
-			if val == nil {
-				(*out)[key] = nil
-			} else {
-				in, out := &val, &outVal
-				*out = new(string)
-				**out = **in
-			}
-			(*out)[key] = outVal
+			(*out)[key] = val
 		}
 	}
 	if in.BoundClaimsType != nil {
@@ -160,29 +146,15 @@ func (in *JwtParameters) DeepCopyInto(out *JwtParameters) {
 	}
 	if in.ClaimMappings != nil {
 		in, out := &in.ClaimMappings, &out.ClaimMappings
-		*out = make(map[string]*string, len(*in))
+		*out = make(map[string]string, len(*in))
 		for key, val := range *in {
-			var outVal *string
-			if val == nil {
-				(*out)[key] = nil
-			} else {
-				in, out := &val, &outVal
-				*out = new(string)
-				**out = **in
-			}
-			(*out)[key] = outVal
+			(*out)[key] = val
 		}
 	}
 	if in.OIDCScopes != nil {
 		in, out := &in.OIDCScopes, &out.OIDCScopes
-		*out = make([]*string, len(*in))
-		for i := range *in {
-			if (*in)[i] != nil {
-				in, out := &(*in)[i], &(*out)[i]
-				*out = new(string)
-				**out = **in
-			}
-		}
+		*out = make([]string, len(*in))
+		copy(*out, *in)
 	}
 	if in.GroupsClaim != nil {
 		in, out := &in.GroupsClaim, &out.GroupsClaim
@@ -196,14 +168,8 @@ func (in *JwtParameters) DeepCopyInto(out *JwtParameters) {
 	}
 	if in.AllowedRedirectURIs != nil {
 		in, out := &in.AllowedRedirectURIs, &out.AllowedRedirectURIs
-		*out = make([]*string, len(*in))
-		for i := range *in {
-			if (*in)[i] != nil {
-				in, out := &(*in)[i], &(*out)[i]
-				*out = new(string)
-				**out = **in
-			}
-		}
+		*out = make([]string, len(*in))
+		copy(*out, *in)
 	}
 	if in.ClockSkewLeeway != nil {
 		in, out := &in.ClockSkewLeeway, &out.ClockSkewLeeway
@@ -228,6 +194,51 @@ func (in *JwtParameters) DeepCopyInto(out *JwtParameters) {
 	if in.MaxAge != nil {
 		in, out := &in.MaxAge, &out.MaxAge
 		*out = new(int)
+		**out = **in
+	}
+	if in.TokenTTL != nil {
+		in, out := &in.TokenTTL, &out.TokenTTL
+		*out = new(int)
+		**out = **in
+	}
+	if in.TokenMaxTTL != nil {
+		in, out := &in.TokenMaxTTL, &out.TokenMaxTTL
+		*out = new(int)
+		**out = **in
+	}
+	if in.TokenPolicies != nil {
+		in, out := &in.TokenPolicies, &out.TokenPolicies
+		*out = make([]string, len(*in))
+		copy(*out, *in)
+	}
+	if in.TokenBoundCIDRS != nil {
+		in, out := &in.TokenBoundCIDRS, &out.TokenBoundCIDRS
+		*out = make([]string, len(*in))
+		copy(*out, *in)
+	}
+	if in.TokenExplicitMaxTTL != nil {
+		in, out := &in.TokenExplicitMaxTTL, &out.TokenExplicitMaxTTL
+		*out = new(int)
+		**out = **in
+	}
+	if in.TokenNoDefaultPolicy != nil {
+		in, out := &in.TokenNoDefaultPolicy, &out.TokenNoDefaultPolicy
+		*out = new(bool)
+		**out = **in
+	}
+	if in.TokenNumUses != nil {
+		in, out := &in.TokenNumUses, &out.TokenNumUses
+		*out = new(int)
+		**out = **in
+	}
+	if in.TokenPeriod != nil {
+		in, out := &in.TokenPeriod, &out.TokenPeriod
+		*out = new(int)
+		**out = **in
+	}
+	if in.TokenType != nil {
+		in, out := &in.TokenType, &out.TokenType
+		*out = new(string)
 		**out = **in
 	}
 }
