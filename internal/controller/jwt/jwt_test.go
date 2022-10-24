@@ -190,6 +190,115 @@ func TestObserve(t *testing.T) {
 	}
 }
 
+func TestCreate(t *testing.T) {
+	type fields struct {
+		clientBuilder func(t *testing.T) clients.VaultClient
+	}
+
+	type args struct {
+		ctx context.Context
+		mg  resource.Managed
+	}
+
+	type want struct {
+		o   managed.ExternalCreation
+		err error
+	}
+
+	cases := map[string]struct {
+		reason string
+		fields fields
+		args   args
+		want   want
+	}{
+		"successfully create": {
+			reason: "Creates JWT/OIDC role",
+			fields: fields{
+				clientBuilder: func(t *testing.T) clients.VaultClient {
+					jwtRole := getTestRole()
+
+					name := jwtRole.Name
+					path := jwtAuthBackendRolePath(*jwtRole.Spec.ForProvider.Backend, name)
+
+					data := getVaultDefaultData()
+					data["role_type"] = "jwt"
+					data["role_name"] = "roleTest"
+					secret := &api.Secret{
+						RequestID:     "",
+						LeaseID:       "",
+						LeaseDuration: 0,
+						Renewable:     false,
+						Data:          data,
+						Warnings:      []string{},
+						Auth:          &api.SecretAuth{},
+						WrapInfo:      &api.SecretWrapInfo{},
+					}
+
+					clientMock, logicalMock := newMock(t)
+					logicalMock.EXPECT().Write(path, data).Return(secret, nil)
+
+					return clientMock
+				},
+			},
+			args: args{
+				ctx: context.TODO(),
+				mg:  getTestRole(),
+			},
+			want: want{
+				o: managed.ExternalCreation{
+					ExternalNameAssigned: false,
+					ConnectionDetails:    managed.ConnectionDetails{},
+				},
+				err: nil,
+			},
+		},
+		"fail creating role": {
+			reason: "Fail creating JWT/OIDC role",
+			fields: fields{
+				clientBuilder: func(t *testing.T) clients.VaultClient {
+					jwtRole := getTestRole()
+
+					name := jwtRole.Name
+					path := jwtAuthBackendRolePath(*jwtRole.Spec.ForProvider.Backend, name)
+
+					data := getVaultDefaultData()
+					data["role_type"] = "jwt"
+					data["role_name"] = "roleTest"
+
+					clientMock, logicalMock := newMock(t)
+					logicalMock.EXPECT().Write(path, data).Return(nil, vaultMockError())
+
+					return clientMock
+				},
+			},
+			args: args{
+				ctx: context.TODO(),
+				mg:  getTestRole(),
+			},
+			want: want{
+				o: managed.ExternalCreation{
+					ExternalNameAssigned: false,
+					ConnectionDetails:    nil,
+				},
+				err: errors.Wrap(vaultMockError(), errCreation),
+			},
+		},
+	}
+
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			e := external{client: tc.fields.clientBuilder(t)}
+			got, err := e.Create(tc.args.ctx, tc.args.mg)
+			if diff := cmp.Diff(tc.want.err, err, test.EquateErrors()); diff != "" {
+				t.Errorf("\n%s\ne.Observe(...): -want error, +got error:\n%s\n", tc.reason, diff)
+			}
+			if diff := cmp.Diff(tc.want.o, got); diff != "" {
+				t.Errorf("\n%s\ne.Observe(...): -want, +got:\n%s\n", tc.reason, diff)
+			}
+		})
+	}
+}
+
 func getTestRole() *v1alpha1.Jwt {
 	return &v1alpha1.Jwt{
 		TypeMeta: metav1.TypeMeta{
@@ -219,4 +328,40 @@ func newMock(t *testing.T) (*fake.MockVaultClient, *fake.MockVaultLogicalClient)
 	clientMock.EXPECT().Logical().Return(logicalMock)
 
 	return clientMock, logicalMock
+}
+
+func vaultMockError() error {
+	return errors.New("fake error message")
+}
+
+func getVaultDefaultData() map[string]interface{} {
+	return map[string]interface{}{
+		"role_name":               "",
+		"namespace":               "",
+		"role_type":               "",
+		"bound_audiences":         []interface{}{},
+		"user_claim":              "",
+		"user_claim_json_pointer": false,
+		"bound_subject":           "",
+		"bound_claims":            map[string]interface{}{},
+		"bound_claims_type":       "",
+		"claim_mappings":          map[string]interface{}{},
+		"oidc_scopes":             []interface{}{},
+		"groups_claim":            "",
+		"allowed_redirect_uris":   []interface{}{},
+		"clock_skew_leeway":       float64(0),
+		"expiration_leeway":       float64(0),
+		"not_before_leeway":       float64(0),
+		"verbose_oidc_logging":    false,
+		"max_age":                 float64(0),
+		"token_ttl":               float64(0),
+		"token_max_ttl":           float64(0),
+		"token_policies":          []interface{}{},
+		"token_bound_cidrs":       []interface{}{},
+		"token_explicit_max_ttl":  float64(0),
+		"token_no_default_policy": false,
+		"token_num_uses":          float64(0),
+		"token_period":            float64(0),
+		"token_type":              "",
+	}
 }
