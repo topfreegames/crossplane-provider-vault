@@ -217,7 +217,7 @@ spec:
                       will be used as the name for the Identity entity alias created
                       due to a successful login.
                     type: string
-                  userClaimJsonPointer:
+                  userClaimJSONPointer:
                     default: false
                     description: Specifies if the user_claim value uses JSON pointer
                       syntax for referencing claims. By default, the user_claim value

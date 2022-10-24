@@ -52,7 +52,7 @@ type JwtParameters struct {
 	// By default, the user_claim value will not use JSON pointer. Requires Vault 1.11+.
 	// +optional
 	// +kubebuilder:default:=false
-	UserClaimJSONPointer *bool `json:"userClaimJsonPointer,omitempty"`
+	UserClaimJSONPointer *bool `json:"userClaimJSONPointer,omitempty"`
 
 	// If set, requires that the sub claim matches this value.
 	// +optional
