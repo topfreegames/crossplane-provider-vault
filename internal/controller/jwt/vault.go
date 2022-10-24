@@ -16,7 +16,7 @@ type Role struct {
 	RoleType             string                 `json:"role_type"`
 	BoundAudiences       []interface{}          `json:"bound_audiences"`
 	UserClaim            string                 `json:"user_claim"`
-	UserClaimJsonPointer bool                   `json:"user_claim_json_pointer"`
+	UserClaimJSONPointer bool                   `json:"user_claim_json_pointer"`
 	BoundSubject         string                 `json:"bound_subject"`
 	BoundClaims          map[string]interface{} `json:"bound_claims"`
 	BoundClaimsType      string                 `json:"bound_claims_type"`
@@ -66,7 +66,7 @@ func fromCrossplane(crossplane *v1alpha1.Jwt) *Role {
 		RoleType:             *ternary(d.RoleType == nil, pointer.String(""), d.RoleType),
 		BoundAudiences:       sliceToInterface(d.BoundAudiences),
 		UserClaim:            *ternary(d.UserClaim == nil, pointer.String(""), d.UserClaim),
-		UserClaimJsonPointer: *ternary(d.UserClaimJSONPointer == nil, pointer.Bool(false), d.UserClaimJSONPointer),
+		UserClaimJSONPointer: *ternary(d.UserClaimJSONPointer == nil, pointer.Bool(false), d.UserClaimJSONPointer),
 		BoundSubject:         *ternary(d.BoundSubject == nil, pointer.String(""), d.BoundSubject),
 		BoundClaims:          mapToInterface(d.BoundClaims),
 		BoundClaimsType:      *ternary(d.BoundClaimsType == nil, pointer.String(""), d.BoundClaimsType),

@@ -144,7 +144,7 @@ func (c *external) Observe(ctx context.Context, mg resource.Managed) (managed.Ex
 		crossplaneData := fromCrossplane(role)
 		vaultData, err := fromVault(response.Data)
 		if err != nil {
-			errors.Wrap(err, errDecodingData)
+			c.logger.Debug("error decoding response from vault: %s", err.Error())
 		}
 
 		// Set this in the struct in order to compare
