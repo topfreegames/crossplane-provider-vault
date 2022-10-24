@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"strconv"
 
+	"github.com/pkg/errors"
 	"github.com/topfreegames/crossplane-provider-vault/apis/auth/v1alpha1"
 	"k8s.io/utils/pointer"
 )
@@ -39,11 +40,14 @@ type Role struct {
 	TokenType            string                 `json:"token_type"`
 }
 
-func fromVault(data map[string]interface{}) *Role {
+func fromVault(data map[string]interface{}) (*Role, error) {
 	role := Role{}
-	jsonObj, _ := json.Marshal(data)
+	jsonObj, err := json.Marshal(data)
+	if err != nil {
+		return nil, errors.New(errDecodingData)
+	}
 	_ = json.Unmarshal(jsonObj, &role)
-	return &role
+	return &role, nil
 }
 
 func ternary[T any](exp bool, a T, b T) T {

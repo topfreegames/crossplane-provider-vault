@@ -45,9 +45,11 @@ const (
 	errNotJwt            = "managed resource is not a Jwt custom resource"
 	errNewExternalClient = "cannot create vault client from config"
 
-	errCreation = "cannot create JWT role"
-	errUpdate   = "cannot update JWT role"
-	errDelete   = "cannot delete JWT role"
+	errCreation = "cannot create JWT/OIDC role"
+	errUpdate   = "cannot update JWT/OIDC role"
+	errDelete   = "cannot delete JWT/OIDC role"
+
+	errDecodingData = "cannot decode JWT/OIDC spec "
 )
 
 // A NoOpService does nothing.
@@ -140,7 +142,10 @@ func (c *external) Observe(ctx context.Context, mg resource.Managed) (managed.Ex
 		exists = true
 
 		crossplaneData := fromCrossplane(role)
-		vaultData := fromVault(response.Data)
+		vaultData, err := fromVault(response.Data)
+		if err != nil {
+			errors.Wrap(err, errDecodingData)
+		}
 
 		// Set this in the struct in order to compare
 		vaultData.Name = role.Name
@@ -175,10 +180,13 @@ func (c *external) Create(ctx context.Context, mg resource.Managed) (managed.Ext
 		return managed.ExternalCreation{}, errors.New(errNotJwt)
 	}
 
-	data := decodeData(role)
+	data, err := decodeData(role)
+	if err != nil {
+		return managed.ExternalCreation{}, errors.Wrap(err, errCreation)
+	}
 
 	path := jwtAuthBackendRolePath(*role.Spec.ForProvider.Backend, role.Name)
-	_, err := c.client.Logical().Write(path, data)
+	_, err = c.client.Logical().Write(path, data)
 	if err != nil {
 		return managed.ExternalCreation{}, errors.Wrap(err, errCreation)
 	}
@@ -196,9 +204,13 @@ func (c *external) Update(ctx context.Context, mg resource.Managed) (managed.Ext
 		return managed.ExternalUpdate{}, errors.New(errNotJwt)
 	}
 
-	data := decodeData(role)
+	data, err := decodeData(role)
+	if err != nil {
+		return managed.ExternalUpdate{}, errors.Wrap(err, errCreation)
+	}
+
 	path := jwtAuthBackendRolePath(*role.Spec.ForProvider.Backend, role.Name)
-	_, err := c.client.Logical().Write(path, data)
+	_, err = c.client.Logical().Write(path, data)
 	if err != nil {
 		return managed.ExternalUpdate{}, errors.Wrap(err, errUpdate)
 	}
@@ -225,14 +237,17 @@ func (c *external) Delete(ctx context.Context, mg resource.Managed) error {
 	return nil
 }
 
-func decodeData(data *v1alpha1.Jwt) map[string]interface{} {
+func decodeData(data *v1alpha1.Jwt) (map[string]interface{}, error) {
 	vaultData := map[string]interface{}{}
 
 	v := fromCrossplane(data)
-	jsonObj, _ := json.Marshal(v)
+	jsonObj, err := json.Marshal(v)
+	if err != nil {
+		return nil, errors.New(errDecodingData)
+	}
 	_ = json.Unmarshal(jsonObj, &vaultData)
 
-	return vaultData
+	return vaultData, nil
 }
 
 func jwtAuthBackendRolePath(backend, role string) string {
