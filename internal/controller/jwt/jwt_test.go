@@ -385,6 +385,22 @@ func TestUpdate(t *testing.T) {
 				err: nil,
 			},
 		},
+		"fail to update": {
+			reason: "Fail validating JWT/OIDC role in update",
+			fields: fields{
+				clientBuilder: func(t *testing.T) clients.VaultClient {
+					return nil
+				},
+			},
+			args: args{
+				ctx: context.TODO(),
+				mg:  getInvalidTestRole(),
+			},
+			want: want{
+				o:   managed.ExternalUpdate{},
+				err: errors.Wrap(errors.New(errValidationBoundAudiences), errUpdate),
+			},
+		},
 	}
 
 	for name, tc := range cases {
