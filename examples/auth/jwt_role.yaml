@@ -4,9 +4,9 @@ metadata:
   name: test0
 spec:
   forProvider:
-    backend: jwt
-    role_type: jwt
-    bound_audiences: ["test"]
-    user_claim: user_email
+    backend: gitlab
+    type: jwt
+    boundAudiences: ["test"]
+    userClaim: user_email
   providerConfigRef:
     name: provider-vault

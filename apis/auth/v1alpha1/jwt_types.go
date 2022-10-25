@@ -126,44 +126,44 @@ type JwtParameters struct {
 	// The incremental lifetime for generated tokens. This current value of this will be referenced at renewal time.
 	// +optional
 	// +kubebuilder:default:=0
-	TokenTTL *int `json:"token_ttl,omitempty"`
+	TokenTTL *int `json:"tokenTTL,omitempty"`
 
 	// The maximum lifetime for generated tokens. This current value of this will be referenced at renewal time.
 	// +optional
 	// +kubebuilder:default:=0
-	TokenMaxTTL *int `json:"token_max_ttl,omitempty"`
+	TokenMaxTTL *int `json:"tokenMaxTTL,omitempty"`
 
 	// List of policies to encode onto generated tokens.
 	// Depending on the auth method, this list may be supplemented by user/group/other values.
 	// +optional
-	TokenPolicies []string `json:"token_policies,omitempty"`
+	TokenPolicies []string `json:"tokenPolicies,omitempty"`
 
 	// List of CIDR blocks; if set, specifies blocks of IP addresses which can authenticate successfully,
 	// and ties the resulting token to these blocks as well.
 	// +optional
-	TokenBoundCIDRS []string `json:"token_bound_cidrs,omitempty"`
+	TokenBoundCIDRS []string `json:"tokenBoundCIDRs,omitempty"`
 
 	// If set, will encode an explicit max TTL onto the token. This is a hard cap even if token_ttl
 	// and token_max_ttl would otherwise allow a renewal.
 	// +optional
 	// +kubebuilder:default:=0
-	TokenExplicitMaxTTL *int `json:"token_explicit_max_ttl,omitempty"`
+	TokenExplicitMaxTTL *int `json:"tokenExplicitMaxTTL,omitempty"`
 
 	// If set, the default policy will not be set on generated tokens; otherwise it will be added to the policies set in token_policies.
 	// +optional
 	// +kubebuilder:default:=false
-	TokenNoDefaultPolicy *bool `json:"token_no_default_policy,omitempty"`
+	TokenNoDefaultPolicy *bool `json:"tokenNoDefaultPolicy,omitempty"`
 
 	// The maximum number of times a generated token may be used (within its lifetime); 0 means unlimited.
 	// If you require the token to have the ability to create child tokens, you will need to set this value to 0.
 	// +optional
 	// +kubebuilder:default:=0
-	TokenNumUses *int `json:"token_num_uses,omitempty"`
+	TokenNumUses *int `json:"tokenNumUses,omitempty"`
 
 	// The period, if any, to set on the token.
 	// +optional
 	// +kubebuilder:default:=0
-	TokenPeriod *int `json:"token_period,omitempty"`
+	TokenPeriod *int `json:"tokenPeriod,omitempty"`
 
 	// The type of token that should be generated. Can be service, batch, or default to use the mount's tuned
 	// default (which unless changed will be service tokens). For token store roles, there are two additional
@@ -172,7 +172,7 @@ type JwtParameters struct {
 	// +optional
 	// +kubebuilder:default:="default"
 	// +kubebuilder:validation:Enum:=service;batch;default
-	TokenType *string `json:"token_type,omitempty"`
+	TokenType *string `json:"tokenType,omitempty"`
 }
 
 // JwtObservation are the observable fields of a Jwt.
