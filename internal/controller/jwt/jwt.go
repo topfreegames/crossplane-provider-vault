@@ -49,7 +49,12 @@ const (
 	errUpdate   = "cannot update JWT/OIDC role"
 	errDelete   = "cannot delete JWT/OIDC role"
 
-	errDecodingData = "cannot decode JWT/OIDC spec "
+	errDecodingData = "cannot decode JWT/OIDC spec"
+
+	errValidationBoundAudiences   = "bound_audiences required for JWT roles"
+	errValidationClockSkewLeeway  = "clock_skew_leeway only applicable for JWT roles"
+	errValidationNotBeforeLeeway  = "not_before_leeway only applicable for JWT roles"
+	errValidationExpirationLeeway = "expiration_leeway only applicable for JWT roles"
 )
 
 // A NoOpService does nothing.
@@ -180,7 +185,11 @@ func (c *external) Create(ctx context.Context, mg resource.Managed) (managed.Ext
 		return managed.ExternalCreation{}, errors.New(errNotJwt)
 	}
 
-	data, err := decodeData(role)
+	r := fromCrossplane(role)
+	if err := r.Validate(); err != nil {
+		return managed.ExternalCreation{}, errors.Wrap(err, errCreation)
+	}
+	data, err := decodeData(r)
 	if err != nil {
 		return managed.ExternalCreation{}, errors.Wrap(err, errCreation)
 	}
@@ -204,9 +213,14 @@ func (c *external) Update(ctx context.Context, mg resource.Managed) (managed.Ext
 		return managed.ExternalUpdate{}, errors.New(errNotJwt)
 	}
 
-	data, err := decodeData(role)
+	r := fromCrossplane(role)
+	if err := r.Validate(); err != nil {
+		return managed.ExternalUpdate{}, errors.Wrap(err, errUpdate)
+	}
+
+	data, err := decodeData(r)
 	if err != nil {
-		return managed.ExternalUpdate{}, errors.Wrap(err, errCreation)
+		return managed.ExternalUpdate{}, errors.Wrap(err, errUpdate)
 	}
 
 	path := jwtAuthBackendRolePath(*role.Spec.ForProvider.Backend, role.Name)
@@ -237,11 +251,10 @@ func (c *external) Delete(ctx context.Context, mg resource.Managed) error {
 	return nil
 }
 
-func decodeData(data *v1alpha1.Jwt) (map[string]interface{}, error) {
+func decodeData(data *Role) (map[string]interface{}, error) {
 	vaultData := map[string]interface{}{}
 
-	v := fromCrossplane(data)
-	jsonObj, err := json.Marshal(v)
+	jsonObj, err := json.Marshal(data)
 	if err != nil {
 		return nil, errors.New(errDecodingData)
 	}

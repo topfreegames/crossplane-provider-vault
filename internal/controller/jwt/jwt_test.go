@@ -43,6 +43,10 @@ import (
 // https://github.com/golang/go/wiki/TestComments
 // https://github.com/crossplane/crossplane/blob/master/CONTRIBUTING.md#contributing-code
 
+const (
+	roleName = "roleTest"
+)
+
 func TestObserve(t *testing.T) {
 	type fields struct {
 		clientBuilder func(t *testing.T) clients.VaultClient
@@ -220,9 +224,9 @@ func TestCreate(t *testing.T) {
 					name := jwtRole.Name
 					path := jwtAuthBackendRolePath(*jwtRole.Spec.ForProvider.Backend, name)
 
-					data := getVaultDefaultData()
-					data["role_type"] = "jwt"
-					data["role_name"] = "roleTest"
+					data := getVaultDefaultData(roleName)
+					data["bound_audiences"] = []interface{}{"test"}
+
 					secret := &api.Secret{
 						RequestID:     "",
 						LeaseID:       "",
@@ -261,9 +265,8 @@ func TestCreate(t *testing.T) {
 					name := jwtRole.Name
 					path := jwtAuthBackendRolePath(*jwtRole.Spec.ForProvider.Backend, name)
 
-					data := getVaultDefaultData()
-					data["role_type"] = "jwt"
-					data["role_name"] = "roleTest"
+					data := getVaultDefaultData(roleName)
+					data["bound_audiences"] = []interface{}{"test"}
 
 					clientMock, logicalMock := newMock(t)
 					logicalMock.EXPECT().Write(path, data).Return(nil, vaultMockError())
@@ -281,6 +284,28 @@ func TestCreate(t *testing.T) {
 					ConnectionDetails:    nil,
 				},
 				err: errors.Wrap(vaultMockError(), errCreation),
+			},
+		},
+		"fail validating role": {
+			reason: "Fail creating JWT/OIDC role due to validation error",
+			fields: fields{
+				clientBuilder: func(t *testing.T) clients.VaultClient {
+					jwtRole := getTestRole()
+					jwtRole.Spec.ForProvider.BoundAudiences = []string{}
+
+					return nil
+				},
+			},
+			args: args{
+				ctx: context.TODO(),
+				mg:  getInvalidTestRole(),
+			},
+			want: want{
+				o: managed.ExternalCreation{
+					ExternalNameAssigned: false,
+					ConnectionDetails:    nil,
+				},
+				err: errors.Wrap(errors.New(errValidationBoundAudiences), errCreation),
 			},
 		},
 	}
@@ -325,13 +350,13 @@ func TestUpdate(t *testing.T) {
 			fields: fields{
 				clientBuilder: func(t *testing.T) clients.VaultClient {
 					jwtRole := getTestRole()
+					jwtRole.Spec.ForProvider.BoundAudiences = []string{"test"}
 
 					name := jwtRole.Name
 					path := jwtAuthBackendRolePath(*jwtRole.Spec.ForProvider.Backend, name)
 
-					data := getVaultDefaultData()
-					data["role_type"] = "jwt"
-					data["role_name"] = "roleTest"
+					data := getVaultDefaultData(roleName)
+					data["bound_audiences"] = []interface{}{"test"}
 					secret := &api.Secret{
 						RequestID:     "",
 						LeaseID:       "",
@@ -469,6 +494,28 @@ func getTestRole() *v1alpha1.Jwt {
 				DeletionPolicy: "Delete",
 			},
 			ForProvider: v1alpha1.JwtParameters{
+				Backend:        pointer.String("gitlab"),
+				RoleType:       pointer.String("jwt"),
+				BoundAudiences: []string{"test"},
+			},
+		},
+	}
+}
+
+func getInvalidTestRole() *v1alpha1.Jwt {
+	return &v1alpha1.Jwt{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       v1alpha1.JwtKind,
+			APIVersion: v1alpha1.JwtKindAPIVersion,
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name: roleName,
+		},
+		Spec: v1alpha1.JwtSpec{
+			ResourceSpec: xpv1.ResourceSpec{
+				DeletionPolicy: "Delete",
+			},
+			ForProvider: v1alpha1.JwtParameters{
 				Backend:  pointer.String("gitlab"),
 				RoleType: pointer.String("jwt"),
 			},
@@ -490,11 +537,11 @@ func vaultMockError() error {
 	return errors.New("fake error message")
 }
 
-func getVaultDefaultData() map[string]interface{} {
+func getVaultDefaultData(name string) map[string]interface{} {
 	return map[string]interface{}{
-		"role_name":               "",
+		"role_name":               name,
 		"namespace":               "",
-		"role_type":               "",
+		"role_type":               "jwt",
 		"bound_audiences":         []interface{}{},
 		"user_claim":              "",
 		"user_claim_json_pointer": false,

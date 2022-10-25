@@ -95,6 +95,9 @@ spec:
                     description: 'How to interpret values in the claims/values map
                       (bound_claims): can be either string (exact match) or glob (wildcard
                       match). Requires Vault 1.4.0 or above.'
+                    enum:
+                    - string
+                    - glob
                     type: string
                   boundSubject:
                     default: ""
@@ -108,14 +111,12 @@ spec:
                       metadata fields (values).
                     type: object
                   clockSkewLeeway:
-                    default: 0
                     description: The amount of leeway to add to all claims to account
                       for clock skew, in seconds. Defaults to 60 seconds if set to
                       0 and can be disabled if set to -1. Only applicable with "jwt"
                       roles.
                     type: integer
                   expirationLeeway:
-                    default: 0
                     description: The amount of leeway to add to expiration (exp) claims
                       to account for clock skew, in seconds. Defaults to 60 seconds
                       if set to 0 and can be disabled if set to -1. Only applicable
@@ -140,7 +141,6 @@ spec:
                       namespace is always relative to the provider's configured namespace
                     type: string
                   notBeforeLeeway:
-                    default: 0
                     description: The amount of leeway to add to not before (nbf) claims
                       to account for clock skew, in seconds. Defaults to 60 seconds
                       if set to 0 and can be disabled if set to -1. Only applicable
@@ -207,10 +207,17 @@ spec:
                       roles, there are two additional possibilities: default-service
                       and default-batch which specify the type to return unless the
                       client requests a different type at generation time.'
+                    enum:
+                    - service
+                    - batch
+                    - default
                     type: string
                   type:
                     default: oidc
                     description: Type of role, either "oidc" (default) or "jwt"
+                    enum:
+                    - jwt
+                    - oidc
                     type: string
                   userClaim:
                     description: The claim to use to uniquely identify the user; this

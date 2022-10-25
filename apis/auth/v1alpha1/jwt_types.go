@@ -36,6 +36,7 @@ type JwtParameters struct {
 
 	// Type of role, either "oidc" (default) or "jwt"
 	// +kubebuilder:default:="oidc"
+	// +kubebuilder:validation:Enum:=jwt;oidc
 	// +optional
 	RoleType *string `json:"type,omitempty"`
 
@@ -67,6 +68,7 @@ type JwtParameters struct {
 	// How to interpret values in the claims/values map (bound_claims): can be either string (exact match) or glob (wildcard match). Requires Vault 1.4.0 or above.
 	// +optional
 	// +kubebuilder:default:="string"
+	// +kubebuilder:validation:Enum:=string;glob
 	BoundClaimsType *string `json:"boundClaimsType,omitempty"`
 
 	// If set, a map of claims (keys) to be copied to specified metadata fields (values).
@@ -97,19 +99,16 @@ type JwtParameters struct {
 	// The amount of leeway to add to all claims to account for clock skew, in seconds. Defaults to 60 seconds
 	// if set to 0 and can be disabled if set to -1. Only applicable with "jwt" roles.
 	// +optional
-	// +kubebuilder:default:=0
 	ClockSkewLeeway *int `json:"clockSkewLeeway,omitempty"`
 
 	// The amount of leeway to add to expiration (exp) claims to account for clock skew, in seconds.
 	// Defaults to 60 seconds if set to 0 and can be disabled if set to -1. Only applicable with "jwt" roles.
 	// +optional
-	// +kubebuilder:default:=0
 	ExpirationLeeway *int `json:"expirationLeeway,omitempty"`
 
 	// The amount of leeway to add to not before (nbf) claims to account for clock skew, in seconds.
 	//  Defaults to 60 seconds if set to 0 and can be disabled if set to -1. Only applicable with "jwt" roles.
 	// +optional
-	// +kubebuilder:default:=0
 	NotBeforeLeeway *int `json:"notBeforeLeeway,omitempty"`
 
 	// Log received OIDC tokens and claims when debug-level logging is active. Not recommended in production
@@ -172,6 +171,7 @@ type JwtParameters struct {
 	// a different type at generation time.
 	// +optional
 	// +kubebuilder:default:="default"
+	// +kubebuilder:validation:Enum:=service;batch;default
 	TokenType *string `json:"token_type,omitempty"`
 }
 
