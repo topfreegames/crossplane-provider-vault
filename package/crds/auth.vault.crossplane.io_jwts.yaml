@@ -1,0 +1,468 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.8.0
+  creationTimestamp: null
+  name: jwts.auth.vault.crossplane.io
+spec:
+  group: auth.vault.crossplane.io
+  names:
+    categories:
+    - crossplane
+    - managed
+    - vault
+    kind: Jwt
+    listKind: JwtList
+    plural: jwts
+    singular: jwt
+  scope: Cluster
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .status.conditions[?(@.type=='Ready')].status
+      name: READY
+      type: string
+    - jsonPath: .status.conditions[?(@.type=='Synced')].status
+      name: SYNCED
+      type: string
+    - jsonPath: .metadata.annotations.crossplane\.io/external-name
+      name: EXTERNAL-NAME
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: AGE
+      type: date
+    name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: A Jwt is an example API type.
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: A JwtSpec defines the desired state of a Jwt.
+            properties:
+              deletionPolicy:
+                default: Delete
+                description: DeletionPolicy specifies what will happen to the underlying
+                  external when this managed resource is deleted - either "Delete"
+                  or "Orphan" the external resource.
+                enum:
+                - Orphan
+                - Delete
+                type: string
+              forProvider:
+                description: JwtParameters are the configurable fields of a Jwt Auth
+                  Backend Role.
+                properties:
+                  allowedRedirectURIs:
+                    description: The list of allowed values for redirect_uri during
+                      OIDC logins. Required for OIDC roles
+                    items:
+                      type: string
+                    type: array
+                  backend:
+                    default: jwt
+                    description: The unique name of the auth backend to configure.
+                      Defaults to jwt.
+                    type: string
+                  boundAudiences:
+                    description: List of aud claims to match against. Any match is
+                      sufficient. Required for roles of type jwt, optional for roles
+                      of type oidc)
+                    items:
+                      type: string
+                    type: array
+                  boundClaims:
+                    additionalProperties:
+                      type: string
+                    description: f set, a map of claims to values to match against.
+                      A claim's value must be a string, which may contain one value
+                      or multiple comma-separated values, e.g. "red" or "red,green,blue"
+                    type: object
+                  boundClaimsType:
+                    default: string
+                    description: 'How to interpret values in the claims/values map
+                      (bound_claims): can be either string (exact match) or glob (wildcard
+                      match). Requires Vault 1.4.0 or above.'
+                    enum:
+                    - string
+                    - glob
+                    type: string
+                  boundSubject:
+                    default: ""
+                    description: If set, requires that the sub claim matches this
+                      value.
+                    type: string
+                  claimMappings:
+                    additionalProperties:
+                      type: string
+                    description: If set, a map of claims (keys) to be copied to specified
+                      metadata fields (values).
+                    type: object
+                  clockSkewLeeway:
+                    description: The amount of leeway to add to all claims to account
+                      for clock skew, in seconds. Defaults to 60 seconds if set to
+                      0 and can be disabled if set to -1. Only applicable with "jwt"
+                      roles.
+                    type: integer
+                  expirationLeeway:
+                    description: The amount of leeway to add to expiration (exp) claims
+                      to account for clock skew, in seconds. Defaults to 60 seconds
+                      if set to 0 and can be disabled if set to -1. Only applicable
+                      with "jwt" roles.
+                    type: integer
+                  groupsClaim:
+                    default: ""
+                    description: The claim to use to uniquely identify the set of
+                      groups to which the user belongs; this will be used as the names
+                      for the Identity group aliases created due to a successful login.
+                      The claim value must be a list of strings.
+                    type: string
+                  maxAge:
+                    default: 0
+                    description: Specifies the allowable elapsed time in seconds since
+                      the last time the user was actively authenticated with the OIDC
+                      provider.
+                    type: integer
+                  namespace:
+                    description: The namespace to provision the resource in. The value
+                      should not contain leading or trailing forward slashes. The
+                      namespace is always relative to the provider's configured namespace
+                    type: string
+                  notBeforeLeeway:
+                    description: The amount of leeway to add to not before (nbf) claims
+                      to account for clock skew, in seconds. Defaults to 60 seconds
+                      if set to 0 and can be disabled if set to -1. Only applicable
+                      with "jwt" roles.
+                    type: integer
+                  oidcScopes:
+                    description: If set, a list of OIDC scopes to be used with an
+                      OIDC role. The standard scope "openid" is automatically included
+                      and need not be specified.
+                    items:
+                      type: string
+                    type: array
+                  tokenBoundCIDRs:
+                    description: List of CIDR blocks; if set, specifies blocks of
+                      IP addresses which can authenticate successfully, and ties the
+                      resulting token to these blocks as well.
+                    items:
+                      type: string
+                    type: array
+                  tokenExplicitMaxTTL:
+                    default: 0
+                    description: If set, will encode an explicit max TTL onto the
+                      token. This is a hard cap even if token_ttl and token_max_ttl
+                      would otherwise allow a renewal.
+                    type: integer
+                  tokenMaxTTL:
+                    default: 0
+                    description: The maximum lifetime for generated tokens. This current
+                      value of this will be referenced at renewal time.
+                    type: integer
+                  tokenNoDefaultPolicy:
+                    default: false
+                    description: If set, the default policy will not be set on generated
+                      tokens; otherwise it will be added to the policies set in token_policies.
+                    type: boolean
+                  tokenNumUses:
+                    default: 0
+                    description: The maximum number of times a generated token may
+                      be used (within its lifetime); 0 means unlimited. If you require
+                      the token to have the ability to create child tokens, you will
+                      need to set this value to 0.
+                    type: integer
+                  tokenPeriod:
+                    default: 0
+                    description: The period, if any, to set on the token.
+                    type: integer
+                  tokenPolicies:
+                    description: List of policies to encode onto generated tokens.
+                      Depending on the auth method, this list may be supplemented
+                      by user/group/other values.
+                    items:
+                      type: string
+                    type: array
+                  tokenTTL:
+                    default: 0
+                    description: The incremental lifetime for generated tokens. This
+                      current value of this will be referenced at renewal time.
+                    type: integer
+                  tokenType:
+                    default: default
+                    description: 'The type of token that should be generated. Can
+                      be service, batch, or default to use the mount''s tuned default
+                      (which unless changed will be service tokens). For token store
+                      roles, there are two additional possibilities: default-service
+                      and default-batch which specify the type to return unless the
+                      client requests a different type at generation time.'
+                    enum:
+                    - service
+                    - batch
+                    - default
+                    type: string
+                  type:
+                    default: oidc
+                    description: Type of role, either "oidc" (default) or "jwt"
+                    enum:
+                    - jwt
+                    - oidc
+                    type: string
+                  userClaim:
+                    description: The claim to use to uniquely identify the user; this
+                      will be used as the name for the Identity entity alias created
+                      due to a successful login.
+                    type: string
+                  userClaimJSONPointer:
+                    default: false
+                    description: Specifies if the user_claim value uses JSON pointer
+                      syntax for referencing claims. By default, the user_claim value
+                      will not use JSON pointer. Requires Vault 1.11+.
+                    type: boolean
+                  verboseOIDCLogging:
+                    default: false
+                    description: Log received OIDC tokens and claims when debug-level
+                      logging is active. Not recommended in production since sensitive
+                      information may be present in OIDC responses.
+                    type: boolean
+                required:
+                - userClaim
+                type: object
+              providerConfigRef:
+                default:
+                  name: default
+                description: ProviderConfigReference specifies how the provider that
+                  will be used to create, observe, update, and delete this managed
+                  resource should be configured.
+                properties:
+                  name:
+                    description: Name of the referenced object.
+                    type: string
+                  policy:
+                    description: Policies for referencing.
+                    properties:
+                      resolution:
+                        default: Required
+                        description: Resolution specifies whether resolution of this
+                          reference is required. The default is 'Required', which
+                          means the reconcile will fail if the reference cannot be
+                          resolved. 'Optional' means this reference will be a no-op
+                          if it cannot be resolved.
+                        enum:
+                        - Required
+                        - Optional
+                        type: string
+                      resolve:
+                        description: Resolve specifies when this reference should
+                          be resolved. The default is 'IfNotPresent', which will attempt
+                          to resolve the reference only when the corresponding field
+                          is not present. Use 'Always' to resolve the reference on
+                          every reconcile.
+                        enum:
+                        - Always
+                        - IfNotPresent
+                        type: string
+                    type: object
+                required:
+                - name
+                type: object
+              providerRef:
+                description: 'ProviderReference specifies the provider that will be
+                  used to create, observe, update, and delete this managed resource.
+                  Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`'
+                properties:
+                  name:
+                    description: Name of the referenced object.
+                    type: string
+                  policy:
+                    description: Policies for referencing.
+                    properties:
+                      resolution:
+                        default: Required
+                        description: Resolution specifies whether resolution of this
+                          reference is required. The default is 'Required', which
+                          means the reconcile will fail if the reference cannot be
+                          resolved. 'Optional' means this reference will be a no-op
+                          if it cannot be resolved.
+                        enum:
+                        - Required
+                        - Optional
+                        type: string
+                      resolve:
+                        description: Resolve specifies when this reference should
+                          be resolved. The default is 'IfNotPresent', which will attempt
+                          to resolve the reference only when the corresponding field
+                          is not present. Use 'Always' to resolve the reference on
+                          every reconcile.
+                        enum:
+                        - Always
+                        - IfNotPresent
+                        type: string
+                    type: object
+                required:
+                - name
+                type: object
+              publishConnectionDetailsTo:
+                description: PublishConnectionDetailsTo specifies the connection secret
+                  config which contains a name, metadata and a reference to secret
+                  store config to which any connection details for this managed resource
+                  should be written. Connection details frequently include the endpoint,
+                  username, and password required to connect to the managed resource.
+                properties:
+                  configRef:
+                    default:
+                      name: default
+                    description: SecretStoreConfigRef specifies which secret store
+                      config should be used for this ConnectionSecret.
+                    properties:
+                      name:
+                        description: Name of the referenced object.
+                        type: string
+                      policy:
+                        description: Policies for referencing.
+                        properties:
+                          resolution:
+                            default: Required
+                            description: Resolution specifies whether resolution of
+                              this reference is required. The default is 'Required',
+                              which means the reconcile will fail if the reference
+                              cannot be resolved. 'Optional' means this reference
+                              will be a no-op if it cannot be resolved.
+                            enum:
+                            - Required
+                            - Optional
+                            type: string
+                          resolve:
+                            description: Resolve specifies when this reference should
+                              be resolved. The default is 'IfNotPresent', which will
+                              attempt to resolve the reference only when the corresponding
+                              field is not present. Use 'Always' to resolve the reference
+                              on every reconcile.
+                            enum:
+                            - Always
+                            - IfNotPresent
+                            type: string
+                        type: object
+                    required:
+                    - name
+                    type: object
+                  metadata:
+                    description: Metadata is the metadata for connection secret.
+                    properties:
+                      annotations:
+                        additionalProperties:
+                          type: string
+                        description: Annotations are the annotations to be added to
+                          connection secret. - For Kubernetes secrets, this will be
+                          used as "metadata.annotations". - It is up to Secret Store
+                          implementation for others store types.
+                        type: object
+                      labels:
+                        additionalProperties:
+                          type: string
+                        description: Labels are the labels/tags to be added to connection
+                          secret. - For Kubernetes secrets, this will be used as "metadata.labels".
+                          - It is up to Secret Store implementation for others store
+                          types.
+                        type: object
+                      type:
+                        description: Type is the SecretType for the connection secret.
+                          - Only valid for Kubernetes Secret Stores.
+                        type: string
+                    type: object
+                  name:
+                    description: Name is the name of the connection secret.
+                    type: string
+                required:
+                - name
+                type: object
+              writeConnectionSecretToRef:
+                description: WriteConnectionSecretToReference specifies the namespace
+                  and name of a Secret to which any connection details for this managed
+                  resource should be written. Connection details frequently include
+                  the endpoint, username, and password required to connect to the
+                  managed resource. This field is planned to be replaced in a future
+                  release in favor of PublishConnectionDetailsTo. Currently, both
+                  could be set independently and connection details would be published
+                  to both without affecting each other.
+                properties:
+                  name:
+                    description: Name of the secret.
+                    type: string
+                  namespace:
+                    description: Namespace of the secret.
+                    type: string
+                required:
+                - name
+                - namespace
+                type: object
+            required:
+            - forProvider
+            type: object
+          status:
+            description: A JwtStatus represents the observed state of a Jwt.
+            properties:
+              atProvider:
+                description: JwtObservation are the observable fields of a Jwt.
+                properties:
+                  observableField:
+                    type: string
+                type: object
+              conditions:
+                description: Conditions of the resource.
+                items:
+                  description: A Condition that may apply to a resource.
+                  properties:
+                    lastTransitionTime:
+                      description: LastTransitionTime is the last time this condition
+                        transitioned from one status to another.
+                      format: date-time
+                      type: string
+                    message:
+                      description: A Message containing details about this condition's
+                        last transition from one status to another, if any.
+                      type: string
+                    reason:
+                      description: A Reason for this condition's last transition from
+                        one status to another.
+                      type: string
+                    status:
+                      description: Status of this condition; is it currently True,
+                        False, or Unknown?
+                      type: string
+                    type:
+                      description: Type of this condition. At most one of each condition
+                        type may apply to a resource at any point in time.
+                      type: string
+                  required:
+                  - lastTransitionTime
+                  - reason
+                  - status
+                  - type
+                  type: object
+                type: array
+            type: object
+        required:
+        - spec
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []

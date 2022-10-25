@@ -1,0 +1,12 @@
+apiVersion: auth.vault.crossplane.io/v1alpha1
+kind: Jwt
+metadata:
+  name: test0
+spec:
+  forProvider:
+    backend: gitlab
+    type: jwt
+    boundAudiences: ["test"]
+    userClaim: user_email
+  providerConfigRef:
+    name: provider-vault
