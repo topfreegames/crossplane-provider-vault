@@ -20,3 +20,6 @@
 - To run the Controller locally, just run:
 ```make dev```
 - To kill this environment, run `make dev-clean`
+- To check the vault instance:
+  - `kubectl port-forward --pod-running-timeout=30s -n vault service/vault 8200:8200`
+  - `vault login`
