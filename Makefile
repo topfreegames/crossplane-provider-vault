@@ -65,7 +65,7 @@ run: go.build
 	@# To see other arguments that can be provided, run the command with --help instead
 	$(GO_OUT_DIR)/provider --debug
 
-dev: $(KIND) $(KUBECTL)
+setup-dev-env: dev-clean $(KIND) $(KUBECTL)
 	@$(INFO) Creating kind cluster
 	@$(KIND) create cluster --name=$(PROJECT_NAME)-dev
 	@$(KUBECTL) cluster-info --context kind-$(PROJECT_NAME)-dev
@@ -73,6 +73,13 @@ dev: $(KIND) $(KUBECTL)
 	@$(KUBECTL) apply -k https://github.com/crossplane/crossplane//cluster?ref=master
 	@$(INFO) Installing Provider Vault CRDs
 	@$(KUBECTL) apply -R -f package/crds
+	@$(INFO) Setting up Vault in the cluster
+	@$(KUBECTL) apply -R -f hack/devenv/vault/manifests.yaml
+	./hack/devenv/scripts/setup-vault.sh
+	@$(KUBECTL) apply -R -f hack/devenv/providerconfig/provider_config.yaml
+	
+	
+dev:
 	@$(INFO) Starting Provider Vault controllers
 	@$(GO) run cmd/provider/main.go --debug
 

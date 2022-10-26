@@ -1,0 +1,14 @@
+---
+apiVersion: vault.crossplane.io/v1alpha1
+kind: ProviderConfig
+metadata:
+  name: provider-vault
+spec:
+  timeout: 10_000_000_000 # 10s
+  address: http://vault-internal.vault.svc.cluster.local:8200
+  credentials:
+    source: Secret
+    secretRef:
+      namespace: crossplane-system
+      name: provider-vault-secret
+      key: credentials
