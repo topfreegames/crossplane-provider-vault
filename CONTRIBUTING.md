@@ -5,8 +5,6 @@
 - [gomplate](https://docs.gomplate.ca/)
 - Docker
 
-### TODO: Add missing steps (make submodules -> make generate -> make go.build )
-
 ### Adding new Kind to the controller
 - `GOMPLATE=gomplate KIND=your_kind GROUP=your_group PROVIDER=Vault hack/helpers/addtype.sh`
 - Define your resource spec under `apis/<GROUP>/<KIND>_types.go`

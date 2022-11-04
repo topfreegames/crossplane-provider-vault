@@ -18,8 +18,14 @@ package role
 
 import (
 	"context"
+	"testing"
+
 	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
+	"github.com/crossplane/crossplane-runtime/pkg/reconciler/managed"
+	"github.com/crossplane/crossplane-runtime/pkg/resource"
+	"github.com/crossplane/crossplane-runtime/pkg/test"
 	"github.com/golang/mock/gomock"
+	"github.com/google/go-cmp/cmp"
 	"github.com/hashicorp/vault/api"
 	"github.com/pkg/errors"
 	"github.com/topfreegames/crossplane-provider-vault/apis/auth/v1alpha1"
@@ -27,13 +33,6 @@ import (
 	"github.com/topfreegames/crossplane-provider-vault/internal/clients/fake"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/pointer"
-	"testing"
-
-	"github.com/google/go-cmp/cmp"
-
-	"github.com/crossplane/crossplane-runtime/pkg/reconciler/managed"
-	"github.com/crossplane/crossplane-runtime/pkg/resource"
-	"github.com/crossplane/crossplane-runtime/pkg/test"
 )
 
 // Unlike many Kubernetes projects Crossplane does not use third party testing
