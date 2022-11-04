@@ -19,14 +19,10 @@ package role
 import (
 	"context"
 	"encoding/json"
-	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
 	"reflect"
 	"strings"
 
-	"github.com/pkg/errors"
-	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-
+	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
 	"github.com/crossplane/crossplane-runtime/pkg/connection"
 	"github.com/crossplane/crossplane-runtime/pkg/controller"
 	"github.com/crossplane/crossplane-runtime/pkg/event"
@@ -34,10 +30,13 @@ import (
 	"github.com/crossplane/crossplane-runtime/pkg/ratelimiter"
 	"github.com/crossplane/crossplane-runtime/pkg/reconciler/managed"
 	"github.com/crossplane/crossplane-runtime/pkg/resource"
+	"github.com/pkg/errors"
 	"github.com/topfreegames/crossplane-provider-vault/apis/auth/v1alpha1"
 	apisv1alpha1 "github.com/topfreegames/crossplane-provider-vault/apis/v1alpha1"
 	"github.com/topfreegames/crossplane-provider-vault/internal/clients"
 	"github.com/topfreegames/crossplane-provider-vault/internal/controller/features"
+	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 const (
