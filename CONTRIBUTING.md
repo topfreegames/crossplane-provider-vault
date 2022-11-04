@@ -10,7 +10,7 @@
 - Define your resource spec under `apis/<GROUP>/<KIND>_types.go`
 - `make generate`
 - Proper define the `Observe`, `Create`, `Update`, `Delete` methods in `internal/controller/<KIND>/<KIND>.go`
-- Add your resource controller in the `Setup` method [here](.internal/controller/vault.go).
+- Add your resource controller in the `Setup` method [here](internal/controller/vault.go).
 
 
 ### Testing locally

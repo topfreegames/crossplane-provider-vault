@@ -19,68 +19,68 @@ package v1alpha1
 
 import xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
 
-// GetCondition of this Jwt.
-func (mg *Jwt) GetCondition(ct xpv1.ConditionType) xpv1.Condition {
+// GetCondition of this Role.
+func (mg *Role) GetCondition(ct xpv1.ConditionType) xpv1.Condition {
 	return mg.Status.GetCondition(ct)
 }
 
-// GetDeletionPolicy of this Jwt.
-func (mg *Jwt) GetDeletionPolicy() xpv1.DeletionPolicy {
+// GetDeletionPolicy of this Role.
+func (mg *Role) GetDeletionPolicy() xpv1.DeletionPolicy {
 	return mg.Spec.DeletionPolicy
 }
 
-// GetProviderConfigReference of this Jwt.
-func (mg *Jwt) GetProviderConfigReference() *xpv1.Reference {
+// GetProviderConfigReference of this Role.
+func (mg *Role) GetProviderConfigReference() *xpv1.Reference {
 	return mg.Spec.ProviderConfigReference
 }
 
 /*
-GetProviderReference of this Jwt.
+GetProviderReference of this Role.
 Deprecated: Use GetProviderConfigReference.
 */
-func (mg *Jwt) GetProviderReference() *xpv1.Reference {
+func (mg *Role) GetProviderReference() *xpv1.Reference {
 	return mg.Spec.ProviderReference
 }
 
-// GetPublishConnectionDetailsTo of this Jwt.
-func (mg *Jwt) GetPublishConnectionDetailsTo() *xpv1.PublishConnectionDetailsTo {
+// GetPublishConnectionDetailsTo of this Role.
+func (mg *Role) GetPublishConnectionDetailsTo() *xpv1.PublishConnectionDetailsTo {
 	return mg.Spec.PublishConnectionDetailsTo
 }
 
-// GetWriteConnectionSecretToReference of this Jwt.
-func (mg *Jwt) GetWriteConnectionSecretToReference() *xpv1.SecretReference {
+// GetWriteConnectionSecretToReference of this Role.
+func (mg *Role) GetWriteConnectionSecretToReference() *xpv1.SecretReference {
 	return mg.Spec.WriteConnectionSecretToReference
 }
 
-// SetConditions of this Jwt.
-func (mg *Jwt) SetConditions(c ...xpv1.Condition) {
+// SetConditions of this Role.
+func (mg *Role) SetConditions(c ...xpv1.Condition) {
 	mg.Status.SetConditions(c...)
 }
 
-// SetDeletionPolicy of this Jwt.
-func (mg *Jwt) SetDeletionPolicy(r xpv1.DeletionPolicy) {
+// SetDeletionPolicy of this Role.
+func (mg *Role) SetDeletionPolicy(r xpv1.DeletionPolicy) {
 	mg.Spec.DeletionPolicy = r
 }
 
-// SetProviderConfigReference of this Jwt.
-func (mg *Jwt) SetProviderConfigReference(r *xpv1.Reference) {
+// SetProviderConfigReference of this Role.
+func (mg *Role) SetProviderConfigReference(r *xpv1.Reference) {
 	mg.Spec.ProviderConfigReference = r
 }
 
 /*
-SetProviderReference of this Jwt.
+SetProviderReference of this Role.
 Deprecated: Use SetProviderConfigReference.
 */
-func (mg *Jwt) SetProviderReference(r *xpv1.Reference) {
+func (mg *Role) SetProviderReference(r *xpv1.Reference) {
 	mg.Spec.ProviderReference = r
 }
 
-// SetPublishConnectionDetailsTo of this Jwt.
-func (mg *Jwt) SetPublishConnectionDetailsTo(r *xpv1.PublishConnectionDetailsTo) {
+// SetPublishConnectionDetailsTo of this Role.
+func (mg *Role) SetPublishConnectionDetailsTo(r *xpv1.PublishConnectionDetailsTo) {
 	mg.Spec.PublishConnectionDetailsTo = r
 }
 
-// SetWriteConnectionSecretToReference of this Jwt.
-func (mg *Jwt) SetWriteConnectionSecretToReference(r *xpv1.SecretReference) {
+// SetWriteConnectionSecretToReference of this Role.
+func (mg *Role) SetWriteConnectionSecretToReference(r *xpv1.SecretReference) {
 	mg.Spec.WriteConnectionSecretToReference = r
 }

@@ -20,8 +20,8 @@ import (
 	"github.com/crossplane/crossplane-runtime/pkg/controller"
 	ctrl "sigs.k8s.io/controller-runtime"
 
+	authRole "github.com/topfreegames/crossplane-provider-vault/internal/controller/auth/role"
 	"github.com/topfreegames/crossplane-provider-vault/internal/controller/config"
-	"github.com/topfreegames/crossplane-provider-vault/internal/controller/jwt"
 	"github.com/topfreegames/crossplane-provider-vault/internal/controller/policy"
 	"github.com/topfreegames/crossplane-provider-vault/internal/controller/role"
 )
@@ -33,7 +33,7 @@ func Setup(mgr ctrl.Manager, o controller.Options) error {
 		config.Setup,
 		policy.Setup,
 		role.Setup,
-		jwt.Setup,
+		authRole.Setup,
 	} {
 		if err := setup(mgr, o); err != nil {
 			return err

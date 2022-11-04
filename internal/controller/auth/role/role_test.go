@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package jwt
+package role
 
 import (
 	"context"
@@ -496,20 +496,20 @@ func TestDelete(t *testing.T) {
 	}
 }
 
-func getTestRole() *v1alpha1.Jwt {
-	return &v1alpha1.Jwt{
+func getTestRole() *v1alpha1.Role {
+	return &v1alpha1.Role{
 		TypeMeta: metav1.TypeMeta{
-			Kind:       v1alpha1.JwtKind,
-			APIVersion: v1alpha1.JwtKindAPIVersion,
+			Kind:       v1alpha1.RoleKind,
+			APIVersion: v1alpha1.RoleKindAPIVersion,
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "roleTest",
 		},
-		Spec: v1alpha1.JwtSpec{
+		Spec: v1alpha1.RoleSpec{
 			ResourceSpec: xpv1.ResourceSpec{
 				DeletionPolicy: "Delete",
 			},
-			ForProvider: v1alpha1.JwtParameters{
+			ForProvider: v1alpha1.RoleParameters{
 				Backend:        pointer.String("gitlab"),
 				RoleType:       pointer.String("jwt"),
 				BoundAudiences: []string{"test"},
@@ -518,20 +518,20 @@ func getTestRole() *v1alpha1.Jwt {
 	}
 }
 
-func getInvalidTestRole() *v1alpha1.Jwt {
-	return &v1alpha1.Jwt{
+func getInvalidTestRole() *v1alpha1.Role {
+	return &v1alpha1.Role{
 		TypeMeta: metav1.TypeMeta{
-			Kind:       v1alpha1.JwtKind,
-			APIVersion: v1alpha1.JwtKindAPIVersion,
+			Kind:       v1alpha1.RoleKind,
+			APIVersion: v1alpha1.RoleKindAPIVersion,
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name: roleName,
 		},
-		Spec: v1alpha1.JwtSpec{
+		Spec: v1alpha1.RoleSpec{
 			ResourceSpec: xpv1.ResourceSpec{
 				DeletionPolicy: "Delete",
 			},
-			ForProvider: v1alpha1.JwtParameters{
+			ForProvider: v1alpha1.RoleParameters{
 				Backend:  pointer.String("gitlab"),
 				RoleType: pointer.String("jwt"),
 			},

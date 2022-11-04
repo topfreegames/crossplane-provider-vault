@@ -1,5 +1,5 @@
 apiVersion: auth.vault.crossplane.io/v1alpha1
-kind: Jwt
+kind: Role
 metadata:
   name: test0
 spec:
