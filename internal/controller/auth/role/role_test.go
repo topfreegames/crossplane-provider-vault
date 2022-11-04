@@ -14,18 +14,12 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package jwt
+package role
 
 import (
 	"context"
-	"testing"
-
 	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
-	"github.com/crossplane/crossplane-runtime/pkg/reconciler/managed"
-	"github.com/crossplane/crossplane-runtime/pkg/resource"
-	"github.com/crossplane/crossplane-runtime/pkg/test"
 	"github.com/golang/mock/gomock"
-	"github.com/google/go-cmp/cmp"
 	"github.com/hashicorp/vault/api"
 	"github.com/pkg/errors"
 	"github.com/topfreegames/crossplane-provider-vault/apis/auth/v1alpha1"
@@ -33,6 +27,13 @@ import (
 	"github.com/topfreegames/crossplane-provider-vault/internal/clients/fake"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/pointer"
+	"testing"
+
+	"github.com/google/go-cmp/cmp"
+
+	"github.com/crossplane/crossplane-runtime/pkg/reconciler/managed"
+	"github.com/crossplane/crossplane-runtime/pkg/resource"
+	"github.com/crossplane/crossplane-runtime/pkg/test"
 )
 
 // Unlike many Kubernetes projects Crossplane does not use third party testing
@@ -496,20 +497,20 @@ func TestDelete(t *testing.T) {
 	}
 }
 
-func getTestRole() *v1alpha1.Jwt {
-	return &v1alpha1.Jwt{
+func getTestRole() *v1alpha1.Role {
+	return &v1alpha1.Role{
 		TypeMeta: metav1.TypeMeta{
-			Kind:       v1alpha1.JwtKind,
-			APIVersion: v1alpha1.JwtKindAPIVersion,
+			Kind:       v1alpha1.RoleKind,
+			APIVersion: v1alpha1.RoleKindAPIVersion,
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "roleTest",
 		},
-		Spec: v1alpha1.JwtSpec{
+		Spec: v1alpha1.RoleSpec{
 			ResourceSpec: xpv1.ResourceSpec{
 				DeletionPolicy: "Delete",
 			},
-			ForProvider: v1alpha1.JwtParameters{
+			ForProvider: v1alpha1.RoleParameters{
 				Backend:        pointer.String("gitlab"),
 				RoleType:       pointer.String("jwt"),
 				BoundAudiences: []string{"test"},
@@ -518,20 +519,20 @@ func getTestRole() *v1alpha1.Jwt {
 	}
 }
 
-func getInvalidTestRole() *v1alpha1.Jwt {
-	return &v1alpha1.Jwt{
+func getInvalidTestRole() *v1alpha1.Role {
+	return &v1alpha1.Role{
 		TypeMeta: metav1.TypeMeta{
-			Kind:       v1alpha1.JwtKind,
-			APIVersion: v1alpha1.JwtKindAPIVersion,
+			Kind:       v1alpha1.RoleKind,
+			APIVersion: v1alpha1.RoleKindAPIVersion,
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name: roleName,
 		},
-		Spec: v1alpha1.JwtSpec{
+		Spec: v1alpha1.RoleSpec{
 			ResourceSpec: xpv1.ResourceSpec{
 				DeletionPolicy: "Delete",
 			},
-			ForProvider: v1alpha1.JwtParameters{
+			ForProvider: v1alpha1.RoleParameters{
 				Backend:  pointer.String("gitlab"),
 				RoleType: pointer.String("jwt"),
 			},

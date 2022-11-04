@@ -25,8 +25,8 @@ import (
 	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
 )
 
-// JwtParameters are the configurable fields of a Jwt Auth Backend Role.
-type JwtParameters struct {
+// RoleParameters are the configurable fields of Auth Role
+type RoleParameters struct {
 
 	// The namespace to provision the resource in. The value should not contain
 	// leading or trailing forward slashes. The namespace is always relative to
@@ -175,57 +175,57 @@ type JwtParameters struct {
 	TokenType *string `json:"tokenType,omitempty"`
 }
 
-// JwtObservation are the observable fields of a Jwt.
-type JwtObservation struct {
+// RoleObservation are the observable fields of a Role.
+type RoleObservation struct {
 	ObservableField string `json:"observableField,omitempty"`
 }
 
-// A JwtSpec defines the desired state of a Jwt.
-type JwtSpec struct {
+// A RoleSpec defines the desired state of a Role.
+type RoleSpec struct {
 	xpv1.ResourceSpec `json:",inline"`
-	ForProvider       JwtParameters `json:"forProvider"`
+	ForProvider       RoleParameters `json:"forProvider"`
 }
 
-// A JwtStatus represents the observed state of a Jwt.
-type JwtStatus struct {
+// A RoleStatus represents the observed state of a Role.
+type RoleStatus struct {
 	xpv1.ResourceStatus `json:",inline"`
-	AtProvider          JwtObservation `json:"atProvider,omitempty"`
+	AtProvider          RoleObservation `json:"atProvider,omitempty"`
 }
 
 // +kubebuilder:object:root=true
 
-// A Jwt is an example API type.
+// A Role is an example API type.
 // +kubebuilder:printcolumn:name="READY",type="string",JSONPath=".status.conditions[?(@.type=='Ready')].status"
 // +kubebuilder:printcolumn:name="SYNCED",type="string",JSONPath=".status.conditions[?(@.type=='Synced')].status"
 // +kubebuilder:printcolumn:name="EXTERNAL-NAME",type="string",JSONPath=".metadata.annotations.crossplane\\.io/external-name"
 // +kubebuilder:printcolumn:name="AGE",type="date",JSONPath=".metadata.creationTimestamp"
 // +kubebuilder:subresource:status
 // +kubebuilder:resource:scope=Cluster,categories={crossplane,managed,vault}
-type Jwt struct {
+type Role struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   JwtSpec   `json:"spec"`
-	Status JwtStatus `json:"status,omitempty"`
+	Spec   RoleSpec   `json:"spec"`
+	Status RoleStatus `json:"status,omitempty"`
 }
 
 // +kubebuilder:object:root=true
 
-// JwtList contains a list of Jwt
-type JwtList struct {
+// RoleList contains a list of Role
+type RoleList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []Jwt `json:"items"`
+	Items           []Role `json:"items"`
 }
 
-// Jwt type metadata.
+// Role type metadata.
 var (
-	JwtKind             = reflect.TypeOf(Jwt{}).Name()
-	JwtGroupKind        = schema.GroupKind{Group: Group, Kind: JwtKind}.String()
-	JwtKindAPIVersion   = JwtKind + "." + SchemeGroupVersion.String()
-	JwtGroupVersionKind = SchemeGroupVersion.WithKind(JwtKind)
+	RoleKind             = reflect.TypeOf(Role{}).Name()
+	RoleGroupKind        = schema.GroupKind{Group: Group, Kind: RoleKind}.String()
+	RoleKindAPIVersion   = RoleKind + "." + SchemeGroupVersion.String()
+	RoleGroupVersionKind = SchemeGroupVersion.WithKind(RoleKind)
 )
 
 func init() {
-	SchemeBuilder.Register(&Jwt{}, &JwtList{})
+	SchemeBuilder.Register(&Role{}, &RoleList{})
 }

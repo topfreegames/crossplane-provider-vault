@@ -1,4 +1,4 @@
-package jwt
+package role
 
 import (
 	"encoding/json"
@@ -79,7 +79,7 @@ func ternary[T any](exp bool, a T, b T) T {
 	return b
 }
 
-func fromCrossplane(crossplane *v1alpha1.Jwt) *Role {
+func fromCrossplane(crossplane *v1alpha1.Role) *Role {
 	d := crossplane.Spec.ForProvider
 	r := &Role{
 		Name:                 crossplane.Name,

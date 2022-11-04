@@ -5,7 +5,7 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.8.0
   creationTimestamp: null
-  name: jwts.auth.vault.crossplane.io
+  name: roles.auth.vault.crossplane.io
 spec:
   group: auth.vault.crossplane.io
   names:
@@ -13,10 +13,10 @@ spec:
     - crossplane
     - managed
     - vault
-    kind: Jwt
-    listKind: JwtList
-    plural: jwts
-    singular: jwt
+    kind: Role
+    listKind: RoleList
+    plural: roles
+    singular: role
   scope: Cluster
   versions:
   - additionalPrinterColumns:
@@ -35,7 +35,7 @@ spec:
     name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: A Jwt is an example API type.
+        description: A Role is an example API type.
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -50,7 +50,7 @@ spec:
           metadata:
             type: object
           spec:
-            description: A JwtSpec defines the desired state of a Jwt.
+            description: A RoleSpec defines the desired state of a Role.
             properties:
               deletionPolicy:
                 default: Delete
@@ -62,8 +62,7 @@ spec:
                 - Delete
                 type: string
               forProvider:
-                description: JwtParameters are the configurable fields of a Jwt Auth
-                  Backend Role.
+                description: RoleParameters are the configurable fields of Auth Role
                 properties:
                   allowedRedirectURIs:
                     description: The list of allowed values for redirect_uri during
@@ -411,10 +410,10 @@ spec:
             - forProvider
             type: object
           status:
-            description: A JwtStatus represents the observed state of a Jwt.
+            description: A RoleStatus represents the observed state of a Role.
             properties:
               atProvider:
-                description: JwtObservation are the observable fields of a Jwt.
+                description: RoleObservation are the observable fields of a Role.
                 properties:
                   observableField:
                     type: string

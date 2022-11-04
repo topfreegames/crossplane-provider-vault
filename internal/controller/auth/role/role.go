@@ -14,11 +14,12 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package jwt
+package role
 
 import (
 	"context"
 	"encoding/json"
+	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
 	"reflect"
 	"strings"
 
@@ -26,7 +27,6 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
 	"github.com/crossplane/crossplane-runtime/pkg/connection"
 	"github.com/crossplane/crossplane-runtime/pkg/controller"
 	"github.com/crossplane/crossplane-runtime/pkg/event"
@@ -34,7 +34,6 @@ import (
 	"github.com/crossplane/crossplane-runtime/pkg/ratelimiter"
 	"github.com/crossplane/crossplane-runtime/pkg/reconciler/managed"
 	"github.com/crossplane/crossplane-runtime/pkg/resource"
-
 	"github.com/topfreegames/crossplane-provider-vault/apis/auth/v1alpha1"
 	apisv1alpha1 "github.com/topfreegames/crossplane-provider-vault/apis/v1alpha1"
 	"github.com/topfreegames/crossplane-provider-vault/internal/clients"
@@ -42,7 +41,7 @@ import (
 )
 
 const (
-	errNotJwt            = "managed resource is not a Jwt custom resource"
+	errNotRole           = "managed resource is not a AuthRole custom resource"
 	errNewExternalClient = "cannot create vault client from config"
 
 	errCreation = "cannot create JWT/OIDC role"
@@ -66,7 +65,7 @@ var (
 
 // Setup adds a controller that reconciles Jwt managed resources.
 func Setup(mgr ctrl.Manager, o controller.Options) error {
-	name := managed.ControllerName(v1alpha1.JwtGroupKind)
+	name := managed.ControllerName(v1alpha1.RoleGroupKind)
 
 	cps := []managed.ConnectionPublisher{managed.NewAPISecretPublisher(mgr.GetClient(), mgr.GetScheme())}
 	if o.Features.Enabled(features.EnableAlphaExternalSecretStores) {
@@ -74,7 +73,7 @@ func Setup(mgr ctrl.Manager, o controller.Options) error {
 	}
 
 	r := managed.NewReconciler(mgr,
-		resource.ManagedKind(v1alpha1.JwtGroupVersionKind),
+		resource.ManagedKind(v1alpha1.RoleGroupVersionKind),
 		managed.WithExternalConnecter(&connector{
 			kube:         mgr.GetClient(),
 			usage:        resource.NewProviderConfigUsageTracker(mgr.GetClient(), &apisv1alpha1.ProviderConfigUsage{}),
@@ -87,7 +86,7 @@ func Setup(mgr ctrl.Manager, o controller.Options) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		Named(name).
 		WithOptions(o.ForControllerRuntime()).
-		For(&v1alpha1.Jwt{}).
+		For(&v1alpha1.Role{}).
 		Complete(ratelimiter.NewReconciler(name, r, o.GlobalRateLimiter))
 }
 
@@ -106,9 +105,9 @@ type connector struct {
 // 3. Getting the credentials specified by the ProviderConfig.
 // 4. Using the credentials to form a client.
 func (c *connector) Connect(ctx context.Context, mg resource.Managed) (managed.ExternalClient, error) {
-	cr, ok := mg.(*v1alpha1.Jwt)
+	cr, ok := mg.(*v1alpha1.Role)
 	if !ok {
-		return nil, errors.New(errNotJwt)
+		return nil, errors.New(errNotRole)
 	}
 
 	vaultClient, err := clients.NewVaultClient(ctx, c.kube, cr)
@@ -133,9 +132,9 @@ type external struct {
 }
 
 func (c *external) Observe(ctx context.Context, mg resource.Managed) (managed.ExternalObservation, error) {
-	role, ok := mg.(*v1alpha1.Jwt)
+	role, ok := mg.(*v1alpha1.Role)
 	if !ok {
-		return managed.ExternalObservation{}, errors.New(errNotJwt)
+		return managed.ExternalObservation{}, errors.New(errNotRole)
 	}
 
 	exists := false
@@ -180,9 +179,9 @@ func (c *external) Observe(ctx context.Context, mg resource.Managed) (managed.Ex
 }
 
 func (c *external) Create(ctx context.Context, mg resource.Managed) (managed.ExternalCreation, error) {
-	role, ok := mg.(*v1alpha1.Jwt)
+	role, ok := mg.(*v1alpha1.Role)
 	if !ok {
-		return managed.ExternalCreation{}, errors.New(errNotJwt)
+		return managed.ExternalCreation{}, errors.New(errNotRole)
 	}
 
 	r := fromCrossplane(role)
@@ -208,9 +207,9 @@ func (c *external) Create(ctx context.Context, mg resource.Managed) (managed.Ext
 }
 
 func (c *external) Update(ctx context.Context, mg resource.Managed) (managed.ExternalUpdate, error) {
-	role, ok := mg.(*v1alpha1.Jwt)
+	role, ok := mg.(*v1alpha1.Role)
 	if !ok {
-		return managed.ExternalUpdate{}, errors.New(errNotJwt)
+		return managed.ExternalUpdate{}, errors.New(errNotRole)
 	}
 
 	r := fromCrossplane(role)
@@ -237,9 +236,9 @@ func (c *external) Update(ctx context.Context, mg resource.Managed) (managed.Ext
 }
 
 func (c *external) Delete(ctx context.Context, mg resource.Managed) error {
-	role, ok := mg.(*v1alpha1.Jwt)
+	role, ok := mg.(*v1alpha1.Role)
 	if !ok {
-		return errors.New(errNotJwt)
+		return errors.New(errNotRole)
 	}
 
 	path := jwtAuthBackendRolePath(*role.Spec.ForProvider.Backend, role.Name)
