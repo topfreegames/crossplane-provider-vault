@@ -44,10 +44,6 @@ import (
 // https://github.com/golang/go/wiki/TestComments
 // https://github.com/crossplane/crossplane/blob/master/CONTRIBUTING.md#contributing-code
 
-const (
-	roleName = "roleTest"
-)
-
 func TestObserve(t *testing.T) {
 	type fields struct {
 		clientBuilder func(t *testing.T) clients.VaultClient
@@ -225,7 +221,7 @@ func TestCreate(t *testing.T) {
 					name := meta.GetExternalName(jwtRole)
 					path := jwtAuthBackendRolePath(*jwtRole.Spec.ForProvider.Backend, name)
 
-					data := getVaultDefaultData(roleName)
+					data := getVaultDefaultData(name)
 					data["bound_audiences"] = []interface{}{"test"}
 
 					secret := &api.Secret{
@@ -266,7 +262,7 @@ func TestCreate(t *testing.T) {
 					name := meta.GetExternalName(jwtRole)
 					path := jwtAuthBackendRolePath(*jwtRole.Spec.ForProvider.Backend, name)
 
-					data := getVaultDefaultData(roleName)
+					data := getVaultDefaultData(name)
 					data["bound_audiences"] = []interface{}{"test"}
 
 					clientMock, logicalMock := newMock(t)
@@ -334,7 +330,7 @@ func TestUpdate(t *testing.T) {
 					name := meta.GetExternalName(jwtRole)
 					path := jwtAuthBackendRolePath(*jwtRole.Spec.ForProvider.Backend, name)
 
-					data := getVaultDefaultData(roleName)
+					data := getVaultDefaultData(name)
 					data["bound_audiences"] = []interface{}{"test"}
 					secret := &api.Secret{
 						RequestID:     "",
