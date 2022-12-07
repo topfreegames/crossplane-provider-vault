@@ -286,28 +286,6 @@ func TestCreate(t *testing.T) {
 				err: errors.Wrap(vaultMockError(), errCreation),
 			},
 		},
-		"fail validating role": {
-			reason: "Fail creating JWT/OIDC role due to validation error",
-			fields: fields{
-				clientBuilder: func(t *testing.T) clients.VaultClient {
-					jwtRole := getTestRole()
-					jwtRole.Spec.ForProvider.BoundAudiences = []string{}
-
-					return nil
-				},
-			},
-			args: args{
-				ctx: context.TODO(),
-				mg:  getInvalidTestRole(),
-			},
-			want: want{
-				o: managed.ExternalCreation{
-					ExternalNameAssigned: false,
-					ConnectionDetails:    nil,
-				},
-				err: errors.Wrap(errors.New(errValidationBoundAudiences), errCreation),
-			},
-		},
 	}
 
 	for name, tc := range cases {
