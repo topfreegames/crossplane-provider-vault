@@ -44,10 +44,6 @@ import (
 // https://github.com/golang/go/wiki/TestComments
 // https://github.com/crossplane/crossplane/blob/master/CONTRIBUTING.md#contributing-code
 
-const (
-	name = "roleTest"
-)
-
 func TestObserve(t *testing.T) {
 	type fields struct {
 		clientBuilder func(t *testing.T) clients.VaultClient
