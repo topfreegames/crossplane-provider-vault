@@ -44,9 +44,6 @@ type Role struct {
 // Check https://developer.hashicorp.com/vault/api-docs/auth/jwt#create-role to see vault contraints for JWT/OIDC roles
 func (role *Role) Validate() error {
 	if role.RoleType == "jwt" {
-		if len(role.BoundAudiences) == 0 {
-			return errors.New(errValidationBoundAudiences)
-		}
 		if role.ClockSkewLeeway != "0" {
 			return errors.New(errValidationClockSkewLeeway)
 		}
