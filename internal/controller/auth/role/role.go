@@ -49,7 +49,6 @@ const (
 
 	errDecodingData = "cannot decode JWT/OIDC spec"
 
-	errValidationBoundAudiences   = "bound_audiences required for JWT roles"
 	errValidationClockSkewLeeway  = "clock_skew_leeway only applicable for JWT roles"
 	errValidationNotBeforeLeeway  = "not_before_leeway only applicable for JWT roles"
 	errValidationExpirationLeeway = "expiration_leeway only applicable for JWT roles"

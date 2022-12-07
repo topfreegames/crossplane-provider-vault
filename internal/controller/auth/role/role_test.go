@@ -480,27 +480,6 @@ func getTestRole() *v1alpha1.Role {
 	}
 }
 
-func getInvalidTestRole() *v1alpha1.Role {
-	return &v1alpha1.Role{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       v1alpha1.RoleKind,
-			APIVersion: v1alpha1.RoleKindAPIVersion,
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name: roleName,
-		},
-		Spec: v1alpha1.RoleSpec{
-			ResourceSpec: xpv1.ResourceSpec{
-				DeletionPolicy: "Delete",
-			},
-			ForProvider: v1alpha1.RoleParameters{
-				Backend:  pointer.String("gitlab"),
-				RoleType: pointer.String("jwt"),
-			},
-		},
-	}
-}
-
 func newMock(t *testing.T) (*fake.MockVaultClient, *fake.MockVaultLogicalClient) {
 	ctrl := gomock.NewController(t)
 	logicalMock := fake.NewMockVaultLogicalClient(ctrl)
