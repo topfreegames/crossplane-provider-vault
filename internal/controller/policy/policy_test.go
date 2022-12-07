@@ -25,6 +25,7 @@ import (
 	"github.com/pkg/errors"
 
 	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
+	"github.com/crossplane/crossplane-runtime/pkg/meta"
 	"github.com/crossplane/crossplane-runtime/pkg/reconciler/managed"
 	"github.com/crossplane/crossplane-runtime/pkg/resource"
 	"github.com/crossplane/crossplane-runtime/pkg/test"
@@ -41,6 +42,11 @@ import (
 //
 // https://github.com/golang/go/wiki/TestComments
 // https://github.com/crossplane/crossplane/blob/master/CONTRIBUTING.md#contributing-code
+
+func withExternalName(policy *v1alpha1.Policy, name string) *v1alpha1.Policy {
+	meta.SetExternalName(policy, name)
+	return policy
+}
 
 func getTestPolicy(f ...func(pol *v1alpha1.Policy) *v1alpha1.Policy) *v1alpha1.Policy {
 	pol := &v1alpha1.Policy{
@@ -64,6 +70,7 @@ func getTestPolicy(f ...func(pol *v1alpha1.Policy) *v1alpha1.Policy) *v1alpha1.P
 		pol = fun(pol)
 	}
 
+	withExternalName(pol, "test-external-name")
 	return pol
 }
 
@@ -98,7 +105,7 @@ func TestObserve(t *testing.T) {
 				clientBuilder: func(t *testing.T) clients.VaultClient {
 					ctrl := gomock.NewController(t)
 					sysMock := fake.NewMockVaultSysClient(ctrl)
-					sysMock.EXPECT().GetPolicy(getTestPolicy().ObjectMeta.Name).Return("", nil)
+					sysMock.EXPECT().GetPolicy(meta.GetExternalName(getTestPolicy())).Return("", nil)
 
 					client := fake.NewMockVaultClient(ctrl)
 					client.EXPECT().Sys().Return(sysMock)
@@ -125,7 +132,7 @@ func TestObserve(t *testing.T) {
 				clientBuilder: func(t *testing.T) clients.VaultClient {
 					ctrl := gomock.NewController(t)
 					sysMock := fake.NewMockVaultSysClient(ctrl)
-					sysMock.EXPECT().GetPolicy(getTestPolicy().ObjectMeta.Name).Return("some other value", nil)
+					sysMock.EXPECT().GetPolicy(meta.GetExternalName(getTestPolicy())).Return("some other value", nil)
 
 					client := fake.NewMockVaultClient(ctrl)
 					client.EXPECT().Sys().Return(sysMock)
@@ -152,7 +159,7 @@ func TestObserve(t *testing.T) {
 				clientBuilder: func(t *testing.T) clients.VaultClient {
 					ctrl := gomock.NewController(t)
 					sysMock := fake.NewMockVaultSysClient(ctrl)
-					sysMock.EXPECT().GetPolicy(getTestPolicy().ObjectMeta.Name).Return("", getTestError())
+					sysMock.EXPECT().GetPolicy(meta.GetExternalName(getTestPolicy())).Return("", getTestError())
 
 					client := fake.NewMockVaultClient(ctrl)
 					client.EXPECT().Sys().Return(sysMock)
@@ -218,7 +225,7 @@ func TestCreate(t *testing.T) {
 				clientBuilder: func(t *testing.T) clients.VaultClient {
 					ctrl := gomock.NewController(t)
 					sysMock := fake.NewMockVaultSysClient(ctrl)
-					sysMock.EXPECT().PutPolicy(getTestPolicy().ObjectMeta.Name, getTestPolicy().Spec.ForProvider.Rules).Return(nil)
+					sysMock.EXPECT().PutPolicy(meta.GetExternalName(getTestPolicy()), getTestPolicy().Spec.ForProvider.Rules).Return(nil)
 
 					client := fake.NewMockVaultClient(ctrl)
 					client.EXPECT().Sys().Return(sysMock)
@@ -242,7 +249,7 @@ func TestCreate(t *testing.T) {
 				clientBuilder: func(t *testing.T) clients.VaultClient {
 					ctrl := gomock.NewController(t)
 					sysMock := fake.NewMockVaultSysClient(ctrl)
-					sysMock.EXPECT().PutPolicy("test", getTestPolicy().Spec.ForProvider.Rules).Return(getTestError())
+					sysMock.EXPECT().PutPolicy("test-external-name", getTestPolicy().Spec.ForProvider.Rules).Return(getTestError())
 
 					client := fake.NewMockVaultClient(ctrl)
 					client.EXPECT().Sys().Return(sysMock)
@@ -303,7 +310,7 @@ func TestUpdate(t *testing.T) {
 				clientBuilder: func(t *testing.T) clients.VaultClient {
 					ctrl := gomock.NewController(t)
 					sysMock := fake.NewMockVaultSysClient(ctrl)
-					sysMock.EXPECT().PutPolicy(getTestPolicy().ObjectMeta.Name, getTestPolicy().Spec.ForProvider.Rules).Return(nil)
+					sysMock.EXPECT().PutPolicy(meta.GetExternalName(getTestPolicy()), getTestPolicy().Spec.ForProvider.Rules).Return(nil)
 
 					client := fake.NewMockVaultClient(ctrl)
 					client.EXPECT().Sys().Return(sysMock)
@@ -327,7 +334,7 @@ func TestUpdate(t *testing.T) {
 				clientBuilder: func(t *testing.T) clients.VaultClient {
 					ctrl := gomock.NewController(t)
 					sysMock := fake.NewMockVaultSysClient(ctrl)
-					sysMock.EXPECT().PutPolicy(getTestPolicy().ObjectMeta.Name, getTestPolicy().Spec.ForProvider.Rules).Return(getTestError())
+					sysMock.EXPECT().PutPolicy(meta.GetExternalName(getTestPolicy()), getTestPolicy().Spec.ForProvider.Rules).Return(getTestError())
 
 					client := fake.NewMockVaultClient(ctrl)
 					client.EXPECT().Sys().Return(sysMock)
@@ -387,7 +394,7 @@ func TestDelete(t *testing.T) {
 				clientBuilder: func(t *testing.T) clients.VaultClient {
 					ctrl := gomock.NewController(t)
 					sysMock := fake.NewMockVaultSysClient(ctrl)
-					sysMock.EXPECT().DeletePolicy(getTestPolicy().ObjectMeta.Name).Return(nil)
+					sysMock.EXPECT().DeletePolicy(meta.GetExternalName(getTestPolicy())).Return(nil)
 
 					client := fake.NewMockVaultClient(ctrl)
 					client.EXPECT().Sys().Return(sysMock)
@@ -408,7 +415,7 @@ func TestDelete(t *testing.T) {
 				clientBuilder: func(t *testing.T) clients.VaultClient {
 					ctrl := gomock.NewController(t)
 					sysMock := fake.NewMockVaultSysClient(ctrl)
-					sysMock.EXPECT().DeletePolicy(getTestPolicy().ObjectMeta.Name).Return(nil)
+					sysMock.EXPECT().DeletePolicy(meta.GetExternalName(getTestPolicy())).Return(nil)
 
 					client := fake.NewMockVaultClient(ctrl)
 					client.EXPECT().Sys().Return(sysMock)

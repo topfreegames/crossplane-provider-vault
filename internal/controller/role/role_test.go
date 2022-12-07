@@ -22,6 +22,7 @@ import (
 
 	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
 	"github.com/crossplane/crossplane-runtime/pkg/logging"
+	"github.com/crossplane/crossplane-runtime/pkg/meta"
 	"github.com/crossplane/crossplane-runtime/pkg/reconciler/managed"
 	"github.com/crossplane/crossplane-runtime/pkg/resource"
 	"github.com/crossplane/crossplane-runtime/pkg/test"
@@ -84,7 +85,7 @@ func TestCreate(t *testing.T) {
 					role := getTestRole()
 					_, data, _ := createVaultData(role)
 
-					name := role.Name
+					name := meta.GetExternalName(role)
 					backend := role.Spec.ForProvider.Backend
 					path := backend + "/roles/" + name
 
@@ -188,7 +189,7 @@ func TestObserve(t *testing.T) {
 
 					role := getTestRole()
 
-					name := role.Name
+					name := meta.GetExternalName(role)
 					backend := role.Spec.ForProvider.Backend
 					path := backend + "/roles/" + name
 
@@ -223,7 +224,7 @@ func TestObserve(t *testing.T) {
 
 					role := getTestRole()
 
-					name := role.Name
+					name := meta.GetExternalName(role)
 					backend := role.Spec.ForProvider.Backend
 					path := backend + "/roles/" + name
 
@@ -311,7 +312,7 @@ func TestUpdate(t *testing.T) {
 					role := getTestRole()
 					_, data, _ := createVaultData(role)
 
-					name := role.Name
+					name := meta.GetExternalName(role)
 					backend := role.Spec.ForProvider.Backend
 					path := backend + "/roles/" + name
 
@@ -394,7 +395,7 @@ func TestDelete(t *testing.T) {
 					role := getTestRole()
 					_, data, _ := createVaultData(role)
 
-					name := role.Name
+					name := meta.GetExternalName(role)
 					backend := role.Spec.ForProvider.Backend
 					path := backend + "/roles/" + name
 
@@ -434,7 +435,7 @@ func TestDelete(t *testing.T) {
 
 					role := getTestRole()
 
-					name := role.Name
+					name := meta.GetExternalName(role)
 					backend := role.Spec.ForProvider.Backend
 					path := backend + "/roles/" + name
 
@@ -472,6 +473,11 @@ func TestDelete(t *testing.T) {
 			}
 		})
 	}
+}
+
+func withExternalName(role *v1alpha1.Role, name string) *v1alpha1.Role {
+	meta.SetExternalName(role, name)
+	return role
 }
 
 func getTestRole(f ...func(role *v1alpha1.Role) *v1alpha1.Role) *v1alpha1.Role {
@@ -518,6 +524,7 @@ func getTestRole(f ...func(role *v1alpha1.Role) *v1alpha1.Role) *v1alpha1.Role {
 		role = fun(role)
 	}
 
+	withExternalName(role, "roletest-externalname")
 	return role
 }
 

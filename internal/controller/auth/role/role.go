@@ -27,6 +27,7 @@ import (
 	"github.com/crossplane/crossplane-runtime/pkg/controller"
 	"github.com/crossplane/crossplane-runtime/pkg/event"
 	"github.com/crossplane/crossplane-runtime/pkg/logging"
+	"github.com/crossplane/crossplane-runtime/pkg/meta"
 	"github.com/crossplane/crossplane-runtime/pkg/ratelimiter"
 	"github.com/crossplane/crossplane-runtime/pkg/reconciler/managed"
 	"github.com/crossplane/crossplane-runtime/pkg/resource"
@@ -77,6 +78,7 @@ func Setup(mgr ctrl.Manager, o controller.Options) error {
 			usage:        resource.NewProviderConfigUsageTracker(mgr.GetClient(), &apisv1alpha1.ProviderConfigUsage{}),
 			newServiceFn: newNoOpService,
 			logger:       o.Logger}),
+		managed.WithInitializers(managed.NewNameAsExternalName(mgr.GetClient())),
 		managed.WithLogger(o.Logger.WithValues("controller", name)),
 		managed.WithRecorder(event.NewAPIRecorder(mgr.GetEventRecorderFor(name))),
 		managed.WithConnectionPublishers(cps...))
@@ -138,7 +140,7 @@ func (c *external) Observe(ctx context.Context, mg resource.Managed) (managed.Ex
 	exists := false
 	upToDate := true
 
-	path := jwtAuthBackendRolePath(*role.Spec.ForProvider.Backend, role.Name)
+	path := jwtAuthBackendRolePath(*role.Spec.ForProvider.Backend, meta.GetExternalName(role))
 	response, err := c.client.Logical().Read(path)
 	if response != nil && err == nil {
 		exists = true
@@ -150,7 +152,7 @@ func (c *external) Observe(ctx context.Context, mg resource.Managed) (managed.Ex
 		}
 
 		// Set this in the struct in order to compare
-		vaultData.Name = role.Name
+		vaultData.Name = meta.GetExternalName(role)
 
 		upToDate = reflect.DeepEqual(*crossplaneData, *vaultData)
 	}
@@ -191,7 +193,7 @@ func (c *external) Create(ctx context.Context, mg resource.Managed) (managed.Ext
 		return managed.ExternalCreation{}, errors.Wrap(err, errCreation)
 	}
 
-	path := jwtAuthBackendRolePath(*role.Spec.ForProvider.Backend, role.Name)
+	path := jwtAuthBackendRolePath(*role.Spec.ForProvider.Backend, meta.GetExternalName(role))
 	_, err = c.client.Logical().Write(path, data)
 	if err != nil {
 		return managed.ExternalCreation{}, errors.Wrap(err, errCreation)
@@ -220,7 +222,7 @@ func (c *external) Update(ctx context.Context, mg resource.Managed) (managed.Ext
 		return managed.ExternalUpdate{}, errors.Wrap(err, errUpdate)
 	}
 
-	path := jwtAuthBackendRolePath(*role.Spec.ForProvider.Backend, role.Name)
+	path := jwtAuthBackendRolePath(*role.Spec.ForProvider.Backend, meta.GetExternalName(role))
 	_, err = c.client.Logical().Write(path, data)
 	if err != nil {
 		return managed.ExternalUpdate{}, errors.Wrap(err, errUpdate)
@@ -239,7 +241,7 @@ func (c *external) Delete(ctx context.Context, mg resource.Managed) error {
 		return errors.New(errNotRole)
 	}
 
-	path := jwtAuthBackendRolePath(*role.Spec.ForProvider.Backend, role.Name)
+	path := jwtAuthBackendRolePath(*role.Spec.ForProvider.Backend, meta.GetExternalName(role))
 	_, err := c.client.Logical().Delete(path)
 	if err != nil {
 		return errors.Wrap(err, errDelete)
