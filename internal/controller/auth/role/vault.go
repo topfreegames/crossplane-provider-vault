@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"strconv"
 
+	"github.com/crossplane/crossplane-runtime/pkg/meta"
 	"github.com/pkg/errors"
 	"github.com/topfreegames/crossplane-provider-vault/apis/auth/v1alpha1"
 	"k8s.io/utils/pointer"
@@ -79,7 +80,7 @@ func ternary[T any](exp bool, a T, b T) T {
 func fromCrossplane(crossplane *v1alpha1.Role) *Role {
 	d := crossplane.Spec.ForProvider
 	r := &Role{
-		Name:                 crossplane.Name,
+		Name:                 meta.GetExternalName(crossplane),
 		Namespace:            *ternary(d.Namespace == nil, pointer.String(""), d.Namespace),
 		RoleType:             *ternary(d.RoleType == nil, pointer.String(""), d.RoleType),
 		BoundAudiences:       sliceToInterface(d.BoundAudiences),
