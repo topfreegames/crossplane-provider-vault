@@ -45,7 +45,7 @@ import (
 // https://github.com/crossplane/crossplane/blob/master/CONTRIBUTING.md#contributing-code
 
 const (
-	roleName = "roleTest"
+	name = "roleTest"
 )
 
 func TestObserve(t *testing.T) {
@@ -225,7 +225,7 @@ func TestCreate(t *testing.T) {
 					name := meta.GetExternalName(jwtRole)
 					path := jwtAuthBackendRolePath(*jwtRole.Spec.ForProvider.Backend, name)
 
-					data := getVaultDefaultData(roleName)
+					data := getVaultDefaultData(name)
 					data["bound_audiences"] = []interface{}{"test"}
 
 					secret := &api.Secret{
@@ -266,7 +266,7 @@ func TestCreate(t *testing.T) {
 					name := meta.GetExternalName(jwtRole)
 					path := jwtAuthBackendRolePath(*jwtRole.Spec.ForProvider.Backend, name)
 
-					data := getVaultDefaultData(roleName)
+					data := getVaultDefaultData(name)
 					data["bound_audiences"] = []interface{}{"test"}
 
 					clientMock, logicalMock := newMock(t)
@@ -334,7 +334,7 @@ func TestUpdate(t *testing.T) {
 					name := meta.GetExternalName(jwtRole)
 					path := jwtAuthBackendRolePath(*jwtRole.Spec.ForProvider.Backend, name)
 
-					data := getVaultDefaultData(roleName)
+					data := getVaultDefaultData(name)
 					data["bound_audiences"] = []interface{}{"test"}
 					secret := &api.Secret{
 						RequestID:     "",
