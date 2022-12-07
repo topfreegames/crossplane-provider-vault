@@ -30,6 +30,7 @@ import (
 	"github.com/crossplane/crossplane-runtime/pkg/controller"
 	"github.com/crossplane/crossplane-runtime/pkg/event"
 	"github.com/crossplane/crossplane-runtime/pkg/logging"
+	"github.com/crossplane/crossplane-runtime/pkg/meta"
 	"github.com/crossplane/crossplane-runtime/pkg/ratelimiter"
 	"github.com/crossplane/crossplane-runtime/pkg/reconciler/managed"
 	"github.com/crossplane/crossplane-runtime/pkg/resource"
@@ -75,9 +76,11 @@ func Setup(mgr ctrl.Manager, o controller.Options) error {
 			usage:        resource.NewProviderConfigUsageTracker(mgr.GetClient(), &apisv1alpha1.ProviderConfigUsage{}),
 			newServiceFn: newNoOpService,
 			logger:       o.Logger}),
+		managed.WithInitializers(managed.NewNameAsExternalName(mgr.GetClient())),
 		managed.WithLogger(o.Logger.WithValues("controller", name)),
 		managed.WithRecorder(event.NewAPIRecorder(mgr.GetEventRecorderFor(name))),
-		managed.WithConnectionPublishers(cps...))
+		managed.WithConnectionPublishers(cps...),
+	)
 
 	return ctrl.NewControllerManagedBy(mgr).
 		Named(name).
@@ -135,7 +138,7 @@ func (c *external) Observe(ctx context.Context, mg resource.Managed) (managed.Ex
 	}
 
 	upToDate := true
-	name := role.Name
+	name := meta.GetExternalName(role)
 	authBackend := role.Spec.ForProvider.Backend
 	path := authBackend + "/roles/" + name
 
@@ -228,7 +231,7 @@ func (c *external) Delete(ctx context.Context, mg resource.Managed) error {
 		return errors.New(errNotRole)
 	}
 
-	name := role.Name
+	name := meta.GetExternalName(role)
 	authBackend := role.Spec.ForProvider.Backend
 
 	c.logger.Debug("Deleting role %q on AWS backend %q", name, authBackend)
@@ -265,7 +268,7 @@ func (c *external) writeRole(role *v1alpha1.Role) error {
 		return fmt.Errorf("error decoding role spec: %w", err)
 	}
 
-	name := role.Name
+	name := meta.GetExternalName(role)
 	backend := role.Spec.ForProvider.Backend
 	path := backend + "/roles/" + name
 

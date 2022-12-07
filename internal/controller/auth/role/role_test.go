@@ -21,6 +21,7 @@ import (
 	"testing"
 
 	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
+	"github.com/crossplane/crossplane-runtime/pkg/meta"
 	"github.com/crossplane/crossplane-runtime/pkg/reconciler/managed"
 	"github.com/crossplane/crossplane-runtime/pkg/resource"
 	"github.com/crossplane/crossplane-runtime/pkg/test"
@@ -74,7 +75,7 @@ func TestObserve(t *testing.T) {
 				clientBuilder: func(t *testing.T) clients.VaultClient {
 					jwtRole := getTestRole()
 
-					name := jwtRole.Name
+					name := meta.GetExternalName(jwtRole)
 					path := jwtAuthBackendRolePath(*jwtRole.Spec.ForProvider.Backend, name)
 
 					clientMock, logicalMock := newMock(t)
@@ -103,7 +104,7 @@ func TestObserve(t *testing.T) {
 				clientBuilder: func(t *testing.T) clients.VaultClient {
 					role := getTestRole()
 
-					path := jwtAuthBackendRolePath(*role.Spec.ForProvider.Backend, role.Name)
+					path := jwtAuthBackendRolePath(*role.Spec.ForProvider.Backend, meta.GetExternalName(role))
 					secret := &api.Secret{
 						RequestID:     "",
 						LeaseID:       "",
@@ -143,7 +144,7 @@ func TestObserve(t *testing.T) {
 				clientBuilder: func(t *testing.T) clients.VaultClient {
 					role := getTestRole()
 
-					path := jwtAuthBackendRolePath(*role.Spec.ForProvider.Backend, role.Name)
+					path := jwtAuthBackendRolePath(*role.Spec.ForProvider.Backend, meta.GetExternalName(role))
 					secret := &api.Secret{
 						RequestID:     "",
 						LeaseID:       "",
@@ -221,7 +222,7 @@ func TestCreate(t *testing.T) {
 				clientBuilder: func(t *testing.T) clients.VaultClient {
 					jwtRole := getTestRole()
 
-					name := jwtRole.Name
+					name := meta.GetExternalName(jwtRole)
 					path := jwtAuthBackendRolePath(*jwtRole.Spec.ForProvider.Backend, name)
 
 					data := getVaultDefaultData(roleName)
@@ -262,7 +263,7 @@ func TestCreate(t *testing.T) {
 				clientBuilder: func(t *testing.T) clients.VaultClient {
 					jwtRole := getTestRole()
 
-					name := jwtRole.Name
+					name := meta.GetExternalName(jwtRole)
 					path := jwtAuthBackendRolePath(*jwtRole.Spec.ForProvider.Backend, name)
 
 					data := getVaultDefaultData(roleName)
@@ -330,7 +331,7 @@ func TestUpdate(t *testing.T) {
 					jwtRole := getTestRole()
 					jwtRole.Spec.ForProvider.BoundAudiences = []string{"test"}
 
-					name := jwtRole.Name
+					name := meta.GetExternalName(jwtRole)
 					path := jwtAuthBackendRolePath(*jwtRole.Spec.ForProvider.Backend, name)
 
 					data := getVaultDefaultData(roleName)
@@ -405,7 +406,7 @@ func TestDelete(t *testing.T) {
 				clientBuilder: func(t *testing.T) clients.VaultClient {
 					jwtRole := getTestRole()
 
-					name := jwtRole.Name
+					name := meta.GetExternalName(jwtRole)
 					path := jwtAuthBackendRolePath(*jwtRole.Spec.ForProvider.Backend, name)
 
 					clientMock, logicalMock := newMock(t)
@@ -428,7 +429,7 @@ func TestDelete(t *testing.T) {
 				clientBuilder: func(t *testing.T) clients.VaultClient {
 					jwtRole := getTestRole()
 
-					name := jwtRole.Name
+					name := meta.GetExternalName(jwtRole)
 					path := jwtAuthBackendRolePath(*jwtRole.Spec.ForProvider.Backend, name)
 
 					clientMock, logicalMock := newMock(t)
@@ -458,8 +459,13 @@ func TestDelete(t *testing.T) {
 	}
 }
 
+func withExternalName(role *v1alpha1.Role, name string) *v1alpha1.Role {
+	meta.SetExternalName(role, name)
+	return role
+}
+
 func getTestRole() *v1alpha1.Role {
-	return &v1alpha1.Role{
+	role := &v1alpha1.Role{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       v1alpha1.RoleKind,
 			APIVersion: v1alpha1.RoleKindAPIVersion,
@@ -478,6 +484,8 @@ func getTestRole() *v1alpha1.Role {
 			},
 		},
 	}
+	withExternalName(role, "roleTest-external-name")
+	return role
 }
 
 func newMock(t *testing.T) (*fake.MockVaultClient, *fake.MockVaultLogicalClient) {
