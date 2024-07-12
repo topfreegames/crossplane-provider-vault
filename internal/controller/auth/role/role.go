@@ -80,6 +80,7 @@ func Setup(mgr ctrl.Manager, o controller.Options) error {
 			logger:       o.Logger}),
 		managed.WithInitializers(managed.NewNameAsExternalName(mgr.GetClient())),
 		managed.WithLogger(o.Logger.WithValues("controller", name)),
+		managed.WithPollInterval(o.PollInterval),
 		managed.WithRecorder(event.NewAPIRecorder(mgr.GetEventRecorderFor(name))),
 		managed.WithConnectionPublishers(cps...))
 
